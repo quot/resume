@@ -1,0 +1,181 @@
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../fonts/Lato/Lato-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: italic;
+  font-weight: 400;
+  src: url("../fonts/Lato/Lato-Italic.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 700;
+  src: url("../fonts/Lato/Lato-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: italic;
+  font-weight: 700;
+  src: url("../fonts/Lato/Lato-BoldItalic.ttf") format("truetype");
+}
+
+:root {
+  color: #111;
+  background: #fff;
+  font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  line-height: 1.25;
+}
+
+body {
+  box-sizing: border-box;
+  max-width: 8.5in;
+  margin: 0 auto;
+  padding: 0.5in 0.65in;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+}
+
+h1 {
+  margin: 0 0 0.1rem;
+  font-size: 18pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+h2 {
+  margin: 0.55rem 0 0.2rem;
+  padding-bottom: 0.05rem;
+  border-bottom: 1px solid #111;
+  font-size: 12pt;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+h3 {
+  display: inline-block;
+  margin: 0.3rem 0 0.05rem;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+p {
+  margin: 0.05rem 0 0.25rem;
+}
+
+h1 + p {
+  margin-bottom: 0.45rem;
+  text-align: center;
+}
+
+h3 + p {
+  float: right;
+  max-width: 45%;
+  margin-top: 0.3rem;
+  margin-bottom: 0.08rem;
+  text-align: right;
+}
+
+h3 + p em {
+  font-style: italic;
+}
+
+h3 + p + ul {
+  clear: both;
+}
+
+.project-link {
+  margin: 0 0 0.08rem;
+  font-size: 9pt;
+}
+
+.project-link + ul {
+  margin-top: 0.08rem;
+}
+
+.resume-entry {
+  margin: 0.3rem 0 0.08rem;
+}
+
+.resume-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  line-height: 1.15;
+}
+
+.resume-row span:last-child {
+  flex-shrink: 0;
+  max-width: 45%;
+  text-align: right;
+}
+
+.resume-title-row {
+  font-weight: 700;
+}
+
+.resume-entry + ul {
+  margin-top: 0.08rem;
+}
+
+ul {
+  margin: 0.1rem 0 0.25rem;
+  padding-left: 1rem;
+}
+
+li {
+  margin: 0.08rem 0;
+  padding-left: 0.05rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.resume-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.45rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid #ccc;
+  color: #555;
+  font-size: 8pt;
+}
+
+.resume-footer span:last-child {
+  text-align: right;
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  body {
+    max-width: none;
+    margin: 0;
+    padding: 0.5in 0.65in 0.8in;
+    font-size: 10pt;
+  }
+
+  .resume-footer {
+    position: fixed;
+    right: 0.65in;
+    bottom: 0.5in;
+    left: 0.65in;
+  }
+}

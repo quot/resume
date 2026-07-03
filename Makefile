@@ -1,0 +1,77 @@
+PANDOC ?= pandoc
+SOURCE ?= resume.md
+BUILD_DIR ?= build
+WEB_DIR ?= $(BUILD_DIR)/web
+WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
+BASENAME ?= resume
+BUILD_SOURCE ?= $(BUILD_DIR)/$(BASENAME).rendered.md
+MARKDOWN_OUTPUT := $(BUILD_DIR)/resume.md
+STYLESHEET ?= assets/styles/resume.css
+RESUME_ENTRY_FILTER ?= pandoc/filters/resume-entry.lua
+CONTACT_ENV :=
+
+# Contact values intentionally come from build-time secrets so the public repo
+# can contain the resume source without publishing email or phone values.
+ifneq ($(origin RESUME_EMAIL),undefined)
+CONTACT_ENV += RESUME_EMAIL='$(RESUME_EMAIL)'
+endif
+
+ifneq ($(origin RESUME_PHONE),undefined)
+CONTACT_ENV += RESUME_PHONE='$(RESUME_PHONE)'
+endif
+
+.PHONY: all web pdf markdown test clean FORCE
+.INTERMEDIATE: $(BUILD_SOURCE)
+
+all: web pdf markdown
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(BUILD_SOURCE): $(SOURCE) scripts/render-resume.js FORCE | $(BUILD_DIR)
+	$(CONTACT_ENV) ./scripts/render-resume.js $(SOURCE) $(BUILD_SOURCE)
+	@latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(SOURCE)")"; \
+	if [ -z "$$latest_url" ]; then \
+		printf 'Missing RESUME_LATEST_URL in frontmatter of $(SOURCE).\n' >&2; \
+		exit 1; \
+	fi; \
+	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> $(BUILD_SOURCE)
+
+$(WEB_DIR):
+	mkdir -p $(WEB_DIR)
+
+web: $(BUILD_SOURCE) $(WEB_DIR)
+	mkdir -p $(WEB_ASSETS_DIR)/styles $(WEB_ASSETS_DIR)/fonts/Lato
+	cp $(STYLESHEET) $(WEB_ASSETS_DIR)/styles/resume.css
+	cp web/headers.txt $(WEB_DIR)/_headers
+	cp assets/fonts/Lato/*.ttf $(WEB_ASSETS_DIR)/fonts/Lato/
+	$(PANDOC) $(BUILD_SOURCE) \
+		--lua-filter $(RESUME_ENTRY_FILTER) \
+		--standalone \
+		--metadata pagetitle="Resume" \
+		--include-in-header web/head.html \
+		--css assets/styles/resume.css \
+		--output $(WEB_DIR)/index.html
+	$(CONTACT_ENV) ./scripts/obfuscate-html-contacts.js $(SOURCE) $(WEB_DIR)/index.html $(WEB_ASSETS_DIR)/contact.js assets/contact.js
+
+pdf: $(BUILD_SOURCE) $(BUILD_DIR)
+	$(PANDOC) $(BUILD_SOURCE) \
+		--lua-filter $(RESUME_ENTRY_FILTER) \
+		--standalone \
+		--metadata pagetitle="Resume" \
+		--css $(STYLESHEET) \
+		--pdf-engine=weasyprint \
+		--output $(BUILD_DIR)/$(BASENAME).pdf
+
+markdown: $(BUILD_SOURCE) $(BUILD_DIR)
+	$(PANDOC) $(BUILD_SOURCE) \
+		--lua-filter $(RESUME_ENTRY_FILTER) \
+		--to=gfm \
+		--wrap=none \
+		--output $(MARKDOWN_OUTPUT)
+
+test:
+	./tests/test-suite.js
+
+clean:
+	rm -rf $(BUILD_DIR)
