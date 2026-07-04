@@ -406,9 +406,29 @@ local function resume_footer(block)
   }, pandoc.Attr('', { 'resume-footer' }))
 end
 
+local function tag_line(block)
+  local text = tostring(block.text):gsub('^%s+', ''):gsub('%s+$', '')
+
+  if text == '' then
+    error('tag-line block requires text')
+  end
+
+  if is_markdown_output() then
+    return pandoc.RawBlock('markdown', markdown_escape(text))
+  end
+
+  return pandoc.Div({
+    pandoc.Plain({ pandoc.Str(text) }),
+  }, pandoc.Attr('', { 'tag-line' }))
+end
+
 function CodeBlock(block)
   if has_class(block.classes, 'contact-list') then
     return contact_list(block)
+  end
+
+  if has_class(block.classes, 'tag-line') then
+    return tag_line(block)
   end
 
   if has_class(block.classes, 'resume-entry') then

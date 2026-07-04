@@ -12,10 +12,11 @@ const buildDir = path.join(tmp, "build");
 const webDir = path.join(buildDir, "web");
 
 const contactEnv = { RESUME_EMAIL: "env@example.com", RESUME_PHONE: "+1 555 333 4444" };
+const projectTitle = "Zig 3D Mesh Generator";
 const projectLink = "https://example.com/project";
 const baseSource = read(path.join(root, "resume.md"))
   .replace('RESUME_LATEST_URL: "acote.dev/resume"', 'RESUME_LATEST_URL: "https://example.com/resume"')
-  .replace('  "title": "Zig 3D Mesh Building",', `  "title": "Zig 3D Mesh Building",\n  "link": "${projectLink}",`);
+  .replace('  "link": "https://github.com/quot/donut",', `  "link": "${projectLink}",`);
 
 function run(name, command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -222,13 +223,14 @@ try {
   assert("markdown output includes environment contact values", markdown.includes(contactEnv.RESUME_EMAIL) && markdown.includes(contactEnv.RESUME_PHONE));
   assert("markdown contact entries use one item per line", markdown.includes("<env@example.com>\n[+1 555 333 4444](tel:+1 555 333 4444)\n[linkedin.com/in/alexcoté](https://linkedin.com/in/alexcoté)\n[github.com/quot](https://github.com/quot)"));
   assert("markdown output omits excluded entries", !markdown.includes("TEST!!!!!!!!!! This should not display!!!!"));
-  assert("markdown output omits custom JSON blocks", !markdown.includes("```resume-entry") && !markdown.includes("```project-entry") && !markdown.includes("```skill-entry") && !markdown.includes("```contact-list"));
+  assert("markdown output omits custom blocks", !markdown.includes("```resume-entry") && !markdown.includes("```project-entry") && !markdown.includes("```skill-entry") && !markdown.includes("```contact-list") && !markdown.includes("```tag-line"));
+  assert("markdown output includes tag line", markdown.includes("Backend Software Engineer | JVM, Kotlin, Kafka, Search, Distributed Systems"));
   assert("markdown output omits resume HTML divs", !markdown.includes("<div class=\"resume-entry\">") && !markdown.includes("<div class=\"resume-footer\">"));
   assert("markdown output omits HTML comments", !markdown.includes("<!--"));
   assert("markdown resume entries use heading and metadata bullets", markdown.includes("### Software Developer\n\n- *C Spire*\n- *Jul 2018 - Present*\n- *Ridgeland, MS*"));
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
-  assert("markdown project entries render link before bullets", markdown.includes(`### Zig 3D Mesh Building\n\n[${projectLink}](${projectLink})\n\n- A work-in-progress project mainly used for learning Zig and graphics programming.`));
-  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Programming Languages**: Python, C++, PostgreSQL, C\\#, HTML, CSS, PHP, Lua, VB.Net, JavaScript, C, Assembly\n- **Systems & Tools**: Linux, Git, GCC, Make, SCons, IDEs, Code Editors"));
+  assert("markdown project entries render link before bullets", markdown.includes(`### ${projectTitle}\n\n[${projectLink}](${projectLink})\n\n- A work-in-progress project mainly used for learning Zig and graphics programming.`));
+  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel, HTMX\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle"));
   assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("https://example.com/resume"));
 
   make("web build succeeds", ["web"], { env: contactEnv });
@@ -241,6 +243,7 @@ try {
   assert("web index references contact script", read(path.join(webDir, "index.html")).includes('src="assets/contact.js"'));
   assert("web index has encrypted contact attributes", /data-obfuscated-contact/.test(read(path.join(webDir, "index.html"))));
   assert("resume entry company and location are italicized", read(path.join(webDir, "index.html")).includes("<em>C Spire</em>") && read(path.join(webDir, "index.html")).includes("<em>Ridgeland, MS</em>"));
+  assert("web tag line is centered", read(path.join(webDir, "index.html")).includes('class="tag-line"') && read(path.join(webDir, "assets", "styles", "resume.css")).includes(".tag-line") && read(path.join(webDir, "assets", "styles", "resume.css")).includes("text-align: center"));
   assert("web project entries render link", read(path.join(webDir, "index.html")).includes(`<a href="${projectLink}">${projectLink}</a>`));
   assertNoPlainContact(contactEnv);
 

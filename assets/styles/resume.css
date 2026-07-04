@@ -80,6 +80,11 @@ h1 + p {
   text-align: center;
 }
 
+.tag-line {
+  margin: 0.05rem 0 0.45rem;
+  text-align: center;
+}
+
 h3 + p {
   float: right;
   max-width: 45%;

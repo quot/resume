@@ -35,7 +35,9 @@ RESUME_LATEST_URL: "acote.dev/resume"
   [{ "label": "Jackson, MS" }]
 -->
 
+```tag-line
 Backend Software Engineer | JVM, Kotlin, Kafka, Search, Distributed Systems
+```
 
 <!-- 
 ## Summary
@@ -193,6 +195,21 @@ yadda yadda yadda
 
 ```resume-entry
 {
+  "include": true,
+  "title": "Software Engineering A.A.S.",
+  "dates": "Aug 2010 - May 2013",
+  "company": "Holmes Community College",
+  "location": "Ridgeland, MS",
+  "bullets": [
+    "Dean's Scholarship recipient.",
+    "2013 CIST Student of the Year."
+  ]
+}
+```
+
+<!-- This Holmes entry includes the extra year spent working on a networking degree.
+```resume-entry
+{
   "include": false,
   "title": "Software Engineering A.A.S.",
   "dates": "Aug 2010 - Dec 2014",
@@ -204,4 +221,4 @@ yadda yadda yadda
     "2013 CIST Student of the Year."
   ]
 }
-```
+``` -->
