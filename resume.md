@@ -1,6 +1,6 @@
 ---
 RESUME_NAME: "Alex Coté"
-RESUME_LATEST_URL: "acote.dev/resume"
+RESUME_LATEST_URL: "resume.acote.dev"
 ---
 
 # {{RESUME_NAME}}

@@ -211,13 +211,13 @@ try {
   assert("web build logs omit contact secret values", !webPlaceholderLog.includes(contactEnv.RESUME_EMAIL) && !webPlaceholderLog.includes(contactEnv.RESUME_PHONE) && !webPlaceholderLog.includes(phoneHrefValue(contactEnv.RESUME_PHONE)), "build logs contained protected contact values");
   const placeholderWeb = read(path.join(webDir, "index.html"));
   assert("web output has no unresolved contact placeholders", !placeholderWeb.includes("{{RESUME_EMAIL}}") && !placeholderWeb.includes("{{RESUME_PHONE}}"));
-  assert("web output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderWeb) && placeholderWeb.includes("acote.dev/resume"), placeholderWeb);
+  assert("web output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderWeb) && placeholderWeb.includes("resume.acote.dev"), placeholderWeb);
 
   make("pdf resolves source placeholders before pandoc", ["pdf", `PANDOC=${fakePandoc}`], { env: contactEnv });
   const placeholderPdf = read(path.join(buildDir, `${resumeBasename}.pdf`));
   assert("pdf output has no unresolved contact placeholders", !placeholderPdf.includes("{{RESUME_EMAIL}}") && !placeholderPdf.includes("{{RESUME_PHONE}}"));
   assert("pdf output includes environment contact values", placeholderPdf.includes(contactEnv.RESUME_EMAIL) && placeholderPdf.includes(contactEnv.RESUME_PHONE));
-  assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("acote.dev/resume"));
+  assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("resume.acote.dev"));
 
   fs.writeFileSync(sourceFile, baseSource.replace('  "title": "Software Developer",', '  "include": true,\n  "title": "Software Developer",'));
   make("include field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
@@ -297,7 +297,7 @@ try {
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
   assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.`));
   assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle\n- **Web**: HTMX, HTML/CSS, JavaScript"));
-  assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("[acote.dev/resume](https://acote.dev/resume)"));
+  assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("[resume.acote.dev](https://resume.acote.dev)"));
 
   make("web build succeeds", ["web"], { env: contactEnv });
   assert("web index exists", fs.existsSync(path.join(webDir, "index.html")));
@@ -312,7 +312,7 @@ try {
   assert("resume entry company and location are italicized", read(path.join(webDir, "index.html")).includes("<em>C Spire</em>") && read(path.join(webDir, "index.html")).includes("<em>Ridgeland, MS</em>"));
   assert("web tag line is centered", read(path.join(webDir, "index.html")).includes('class="tag-line"') && read(path.join(webDir, "assets", "styles", "resume.css")).includes(".tag-line") && read(path.join(webDir, "assets", "styles", "resume.css")).includes("text-align: center"));
   assert("web project resume-entry renders link", read(path.join(webDir, "index.html")).includes(`href="${projectLink}"`));
-  assert("web footer prepends missing URL scheme in href", read(path.join(webDir, "index.html")).includes('href="https://acote.dev/resume"') && read(path.join(webDir, "index.html")).includes('>acote.dev/resume</a>'));
+  assert("web footer prepends missing URL scheme in href", read(path.join(webDir, "index.html")).includes('href="https://resume.acote.dev"') && read(path.join(webDir, "index.html")).includes('>resume.acote.dev</a>'));
   assertNoPlainContact(contactEnv);
 
   const firstPayload = firstContactPayload();
