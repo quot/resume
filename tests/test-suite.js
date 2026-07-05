@@ -251,7 +251,7 @@ try {
   make("resume-entry optional metadata markdown succeeds", ["markdown"], { env: contactEnv });
   const optionalMarkdown = read(path.join(buildDir, "resume.md"));
   assert("markdown resume-entry metadata fields are optional", optionalMarkdown.includes("### Dates Only\n\n- *2024 - Present*") && optionalMarkdown.includes("### Location Only\n\n- *Remote*") && optionalMarkdown.includes("### Title Only"));
-  assert("markdown resume-entry link renders under company", optionalMarkdown.includes("### Linked Entry\n\n- *Linked Co*\n- [https://example.com/resume-entry](https://example.com/resume-entry)\n- *Remote*"));
+  assert("markdown resume-entry link renders under company", optionalMarkdown.includes("### Linked Entry\n\n- **Linked Co**\n- [https://example.com/resume-entry](https://example.com/resume-entry)\n- *Remote*"));
   make("resume-entry optional metadata web succeeds", ["web"], { env: contactEnv });
   const optionalWeb = read(path.join(webDir, "index.html"));
   const linkedEntryIndex = optionalWeb.indexOf("<span>Linked Entry</span>");
@@ -284,10 +284,10 @@ try {
   assert("markdown output includes tag line", markdown.includes("Backend Software Engineer | JVM, Kotlin, Kafka, Search, Distributed Systems"));
   assert("markdown output omits resume HTML divs", !markdown.includes("<div class=\"resume-entry\">") && !markdown.includes("<div class=\"resume-footer\">"));
   assert("markdown output omits HTML comments", !markdown.includes("<!--"));
-  assert("markdown resume entries use heading and metadata bullets", markdown.includes("### Software Developer\n\n- *C Spire*\n- *Jul 2018 - Present*\n- *Ridgeland, MS*"));
+  assert("markdown resume entries use heading and metadata bullets", markdown.includes("### Software Developer\n\n- **C Spire**\n- *Jul 2018 - Present*\n- *Ridgeland, MS*"));
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
-  assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- A work-in-progress project mainly used for learning Zig and graphics programming.`));
-  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel, HTMX\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle"));
+  assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.`));
+  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle\n- **Web**: HTMX, HTML/CSS, JavaScript"));
   assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("https://example.com/resume"));
 
   make("web build succeeds", ["web"], { env: contactEnv });

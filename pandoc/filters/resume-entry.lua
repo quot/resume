@@ -129,7 +129,7 @@ local function resume_entry(block)
     }
 
     if has_value(entry.company) then
-      table.insert(lines, '- *' .. markdown_escape(entry.company) .. '*')
+      table.insert(lines, '- **' .. markdown_escape(entry.company) .. '**')
     end
 
     if has_value(entry.link) then
