@@ -3,6 +3,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { phoneHrefValue } = require("../scripts/contact-links");
 const { readVars } = require("../scripts/read-vars");
 
 const root = path.resolve(__dirname, "..");
@@ -15,7 +16,6 @@ const contactEnv = { RESUME_EMAIL: "env@example.com", RESUME_PHONE: "+1 (555) 33
 const projectTitle = "Zig 3D Mesh Generator";
 const projectLink = "https://example.com/project";
 const baseSource = read(path.join(root, "resume.md"))
-  .replace('RESUME_LATEST_URL: "acote.dev/resume"', 'RESUME_LATEST_URL: "https://example.com/resume"')
   .replace('  "link": "https://github.com/quot/donut"', `  "link": "${projectLink}"`);
 
 function run(name, command, args, options = {}) {
@@ -117,19 +117,20 @@ function firstContactPayload() {
 
 function assertNoPlainContact(values) {
   const protectedValues = [
-    values.RESUME_EMAIL,
-    values.RESUME_EMAIL ? `mailto:${values.RESUME_EMAIL}` : undefined,
-    values.RESUME_PHONE,
-    "mailto:",
-    "tel:",
-  ].filter(Boolean);
+    { label: "email", value: values.RESUME_EMAIL },
+    { label: "email href", value: values.RESUME_EMAIL ? `mailto:${values.RESUME_EMAIL}` : undefined },
+    { label: "phone", value: values.RESUME_PHONE },
+    { label: "normalized phone href", value: values.RESUME_PHONE ? phoneHrefValue(values.RESUME_PHONE) : undefined },
+    { label: "mailto scheme", value: "mailto:" },
+    { label: "tel scheme", value: "tel:" },
+  ].filter((entry) => entry.value);
 
   const failures = [];
   for (const file of listFiles(webDir)) {
     const contents = read(file);
-    for (const value of protectedValues) {
-      if (contents.includes(value)) {
-        failures.push(`${file}: ${value}`);
+    for (const entry of protectedValues) {
+      if (contents.includes(entry.value)) {
+        failures.push(`${file}: found unobfuscated ${entry.label}`);
       }
     }
   }
@@ -158,8 +159,8 @@ try {
     incompleteSource,
     path.join(tmp, "incomplete.md"),
   ], { shouldFail: true });
-  assert("missing variable error includes make argument example", missingVars.stderr.includes('make RESUME_EMAIL="person@example.com" RESUME_PHONE="+1 (555) 000-0000"'));
-  assert("missing variable error includes environment example", missingVars.stderr.includes('RESUME_EMAIL="person@example.com" RESUME_PHONE="+1 (555) 000-0000" make'));
+  assert("missing variable error omits make argument example", !missingVars.stderr.includes('make RESUME_EMAIL="person@example.com" RESUME_PHONE="+1 (555) 000-0000"'));
+  assert("missing variable error includes environment guidance", missingVars.stderr.includes("Set required variables in the environment, then rerun make."));
 
   const frontmatterContactSource = path.join(tmp, "frontmatter-contact.md");
   fs.writeFileSync(frontmatterContactSource, baseSource.replace("RESUME_LATEST_URL", "RESUME_EMAIL: \"file@example.com\"\nRESUME_PHONE: \"+1 555 111 2222\"\nRESUME_LATEST_URL"));
@@ -181,35 +182,40 @@ try {
 
   const editedSource = baseSource.replace("# Your Name", "# Edited Name");
   fs.writeFileSync(sourceFile, editedSource);
-  make("contact overrides preserve edited source", [
+  make("environment contacts preserve edited source", [
     "web",
     `PANDOC=${fakePandoc}`,
-    "RESUME_EMAIL=arg@example.com",
-    "RESUME_PHONE=+1 555 999 0000",
-  ]);
-  assert("edited source is unchanged after contact override build", read(sourceFile) === editedSource);
+  ], { env: contactEnv });
+  assert("edited source is unchanged after environment contact build", read(sourceFile) === editedSource);
 
-  make("make arguments override environment", [
+  const contactArgBuild = make("contact make arguments are rejected", [
     "pdf",
     `PANDOC=${fakePandoc}`,
     "RESUME_EMAIL=arg@example.com",
     "RESUME_PHONE=+1 555 999 0000",
-  ], { env: contactEnv });
-  const argRendered = read(path.join(buildDir, "resume.pdf"));
-  assert("make argument email wins", argRendered.includes("arg@example.com") && !argRendered.includes("env@example.com"));
-  assert("make argument phone wins", argRendered.includes("+1 555 999 0000") && !argRendered.includes("+1 (555) 333-4444"));
+  ], { env: contactEnv, shouldFail: true });
+  assert("make argument email is rejected", contactArgBuild.stderr.includes("RESUME_EMAIL must be provided through the environment"));
+
+  const phoneArgBuild = make("phone make argument is rejected", [
+    "pdf",
+    `PANDOC=${fakePandoc}`,
+    "RESUME_PHONE=+1 555 999 0000",
+  ], { env: contactEnv, shouldFail: true });
+  assert("make argument phone is rejected", phoneArgBuild.stderr.includes("RESUME_PHONE must be provided through the environment"));
 
   fs.writeFileSync(sourceFile, baseSource);
-  make("web resolves source placeholders before pandoc", ["web", `PANDOC=${fakePandoc}`], { env: contactEnv });
+  const webPlaceholderBuild = make("web resolves source placeholders before pandoc", ["web", `PANDOC=${fakePandoc}`], { env: contactEnv });
+  const webPlaceholderLog = `${webPlaceholderBuild.stdout}${webPlaceholderBuild.stderr}`;
+  assert("web build logs omit contact secret values", !webPlaceholderLog.includes(contactEnv.RESUME_EMAIL) && !webPlaceholderLog.includes(contactEnv.RESUME_PHONE) && !webPlaceholderLog.includes(phoneHrefValue(contactEnv.RESUME_PHONE)), "build logs contained protected contact values");
   const placeholderWeb = read(path.join(webDir, "index.html"));
   assert("web output has no unresolved contact placeholders", !placeholderWeb.includes("{{RESUME_EMAIL}}") && !placeholderWeb.includes("{{RESUME_PHONE}}"));
-  assert("web output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderWeb) && placeholderWeb.includes("https://example.com/resume"), placeholderWeb);
+  assert("web output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderWeb) && placeholderWeb.includes("acote.dev/resume"), placeholderWeb);
 
   make("pdf resolves source placeholders before pandoc", ["pdf", `PANDOC=${fakePandoc}`], { env: contactEnv });
   const placeholderPdf = read(path.join(buildDir, "resume.pdf"));
   assert("pdf output has no unresolved contact placeholders", !placeholderPdf.includes("{{RESUME_EMAIL}}") && !placeholderPdf.includes("{{RESUME_PHONE}}"));
   assert("pdf output includes environment contact values", placeholderPdf.includes(contactEnv.RESUME_EMAIL) && placeholderPdf.includes(contactEnv.RESUME_PHONE));
-  assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("https://example.com/resume"));
+  assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("acote.dev/resume"));
 
   fs.writeFileSync(sourceFile, baseSource.replace('  "title": "Software Developer",', '  "include": true,\n  "title": "Software Developer",'));
   make("include field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
@@ -278,7 +284,7 @@ try {
   assert("markdown build removes rendered intermediate", !fs.existsSync(renderedBuildFile));
   assert("markdown output has no unresolved contact placeholders", !markdown.includes("{{RESUME_EMAIL}}") && !markdown.includes("{{RESUME_PHONE}}"));
   assert("markdown output includes environment contact values", markdown.includes(contactEnv.RESUME_EMAIL) && markdown.includes(contactEnv.RESUME_PHONE));
-  assert("markdown contact entries use one item per line", markdown.includes("<env@example.com>\n[+1 (555) 333-4444](tel:+15553334444)\n[linkedin.com/in/alexcoté](https://linkedin.com/in/alexcoté)\n[github.com/quot](https://github.com/quot)"));
+  assert("markdown contact entries use one item per line", markdown.includes("<env@example.com>\n[+1 (555) 333-4444](tel:+15553334444)\n[linkedin.com/in/-alexcote](https://linkedin.com/in/-alexcote)\n[github.com/quot](https://github.com/quot)"));
   assert("markdown output omits commented sections", !markdown.includes("System Administrator") && !markdown.includes("A+ Certified"));
   assert("markdown output omits custom blocks", !markdown.includes("```resume-entry") && !markdown.includes("```skill-entry") && !markdown.includes("```contact-list") && !markdown.includes("```tag-line"));
   assert("markdown output includes tag line", markdown.includes("Backend Software Engineer | JVM, Kotlin, Kafka, Search, Distributed Systems"));
@@ -288,7 +294,7 @@ try {
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
   assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.`));
   assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle\n- **Web**: HTMX, HTML/CSS, JavaScript"));
-  assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("https://example.com/resume"));
+  assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("[acote.dev/resume](https://acote.dev/resume)"));
 
   make("web build succeeds", ["web"], { env: contactEnv });
   assert("web index exists", fs.existsSync(path.join(webDir, "index.html")));
@@ -302,6 +308,7 @@ try {
   assert("resume entry company and location are italicized", read(path.join(webDir, "index.html")).includes("<em>C Spire</em>") && read(path.join(webDir, "index.html")).includes("<em>Ridgeland, MS</em>"));
   assert("web tag line is centered", read(path.join(webDir, "index.html")).includes('class="tag-line"') && read(path.join(webDir, "assets", "styles", "resume.css")).includes(".tag-line") && read(path.join(webDir, "assets", "styles", "resume.css")).includes("text-align: center"));
   assert("web project resume-entry renders link", read(path.join(webDir, "index.html")).includes(`href="${projectLink}"`));
+  assert("web footer prepends missing URL scheme in href", read(path.join(webDir, "index.html")).includes('href="https://acote.dev/resume"') && read(path.join(webDir, "index.html")).includes('>acote.dev/resume</a>'));
   assertNoPlainContact(contactEnv);
 
   const firstPayload = firstContactPayload();

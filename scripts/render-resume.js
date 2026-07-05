@@ -4,8 +4,13 @@ const fs = require("fs");
 const { phoneHrefValue } = require("./contact-links");
 const { readVars } = require("./read-vars");
 
-const inputFile = process.argv[2] || "resume.md";
-const outputFile = process.argv[3] || "build/resume.rendered.md";
+const args = process.argv.slice(2);
+const preserveContactPlaceholders = args[0] === "--preserve-contact-placeholders";
+if (preserveContactPlaceholders) args.shift();
+
+const contactPlaceholderKeys = new Set(["RESUME_EMAIL", "RESUME_PHONE", "RESUME_PHONE_HREF"]);
+const inputFile = args[0] || "resume.md";
+const outputFile = args[1] || "build/resume.rendered.md";
 
 if (!fs.existsSync(inputFile)) {
   console.error(`Missing source file: ${inputFile}`);
@@ -18,16 +23,16 @@ if (vars.RESUME_PHONE) {
 }
 const source = fs.readFileSync(inputFile, "utf8");
 const rendered = source.replace(/\{\{([A-Z0-9_]+)\}\}/g, (placeholder, key) => {
+  if (preserveContactPlaceholders && contactPlaceholderKeys.has(key)) return placeholder;
+
   return Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : placeholder;
 });
 
-const unresolved = rendered.match(/\{\{[A-Z0-9_]+\}\}/);
-if (unresolved) {
+const unresolved = [...rendered.matchAll(/\{\{([A-Z0-9_]+)\}\}/g)]
+  .filter((match) => !preserveContactPlaceholders || !contactPlaceholderKeys.has(match[1]));
+if (unresolved.length > 0) {
   console.error(`Error: ${outputFile} still contains unresolved placeholders.`);
-  console.error(`Provide required variables through make arguments, for example:`);
-  console.error(`  make RESUME_EMAIL="person@example.com" RESUME_PHONE="+1 (555) 000-0000"`);
-  console.error(`Or through environment variables, for example:`);
-  console.error(`  RESUME_EMAIL="person@example.com" RESUME_PHONE="+1 (555) 000-0000" make`);
+  console.error(`Set required variables in the environment, then rerun make.`);
   process.exit(1);
 }
 

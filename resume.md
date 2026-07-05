@@ -19,8 +19,8 @@ RESUME_LATEST_URL: "acote.dev/resume"
     ],
     [
       {
-        "label": "linkedin.com/in/alexcoté",
-        "href": "https://linkedin.com/in/alexcoté"
+        "label": "linkedin.com/in/-alexcote",
+        "href": "https://linkedin.com/in/-alexcote"
       },
       {
         "label": "github.com/quot",

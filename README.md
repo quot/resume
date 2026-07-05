@@ -11,12 +11,21 @@
 
 Full:
 
+Set `RESUME_EMAIL` and `RESUME_PHONE` in your shell or CI environment, then run:
+
 ```sh
-make RESUME_EMAIL="me@example.com" RESUME_PHONE="+1 (555) 000-0000"
+make
 ```
 
 Web Only:
 
+Set `RESUME_EMAIL` and `RESUME_PHONE` in your shell or CI environment, then run:
+
 ```sh
-make web RESUME_EMAIL="me@example.com" RESUME_PHONE="+1 (555) 000-0000"
+make web
 ```
+
+## Artifacts
+
+Only publish `build/web` for the web resume. Other files under `build/` may
+temporarily contain plaintext contact values during pdf and markdown builds.

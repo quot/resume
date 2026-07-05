@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-const { phoneHref } = require("../scripts/contact-links");
+const { phoneHref, phoneHrefValue } = require("../scripts/contact-links");
 const { readVars } = require("../scripts/read-vars");
 
 const varsFile = process.argv[2] || "resume.md";
@@ -23,33 +23,46 @@ function listFiles(directory) {
   return files;
 }
 
-function unique(values) {
-  return [...new Set(values.filter(Boolean))];
+function uniqueEntries(entries) {
+  const seen = new Set();
+  return entries.filter((entry) => {
+    if (!entry.value || seen.has(entry.value)) return false;
+
+    seen.add(entry.value);
+    return true;
+  });
 }
 
 const vars = readVars(varsFile);
-const protectedValues = unique([
-  vars.RESUME_EMAIL,
-  "mailto:",
-  vars.RESUME_EMAIL ? `mailto:${vars.RESUME_EMAIL}` : undefined,
-  vars.RESUME_PHONE,
-  "tel:",
-  vars.RESUME_PHONE ? phoneHref(vars.RESUME_PHONE) : undefined,
-]);
 
-if (protectedValues.length === 0) {
-  console.error("No protected contact values found in resume frontmatter.");
-  process.exit(1);
+for (const key of ["RESUME_EMAIL", "RESUME_PHONE"]) {
+  if (!vars[key]) {
+    console.error(`${key} must be provided through the environment to verify web obfuscation.`);
+    process.exit(1);
+  }
 }
+
+const protectedValues = uniqueEntries([
+  { label: "email", value: vars.RESUME_EMAIL },
+  { label: "mailto scheme", value: "mailto:" },
+  { label: "email href", value: vars.RESUME_EMAIL ? `mailto:${vars.RESUME_EMAIL}` : undefined },
+  { label: "phone", value: vars.RESUME_PHONE },
+  { label: "normalized phone href", value: vars.RESUME_PHONE ? phoneHrefValue(vars.RESUME_PHONE) : undefined },
+  { label: "tel scheme", value: "tel:" },
+  { label: "phone href", value: vars.RESUME_PHONE ? phoneHref(vars.RESUME_PHONE) : undefined },
+  { label: "email placeholder", value: "{{RESUME_EMAIL}}" },
+  { label: "phone placeholder", value: "{{RESUME_PHONE}}" },
+  { label: "phone href placeholder", value: "{{RESUME_PHONE_HREF}}" },
+]);
 
 const failures = [];
 
 for (const file of listFiles(webDir)) {
   const contents = fs.readFileSync(file, "utf8");
 
-  for (const value of protectedValues) {
-    if (contents.includes(value)) {
-      failures.push(`${file}: found unobfuscated value ${JSON.stringify(value)}`);
+  for (const entry of protectedValues) {
+    if (contents.includes(entry.value)) {
+      failures.push(`${file}: found unobfuscated ${entry.label}`);
     }
   }
 }

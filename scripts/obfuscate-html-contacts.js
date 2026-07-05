@@ -8,7 +8,8 @@ const { readVars } = require("./read-vars");
 const varsFile = process.argv[2] || "resume.md";
 const htmlFile = process.argv[3] || "build/web/index.html";
 const scriptFile = process.argv[4] || "build/web/contact.js";
-const scriptSrc = process.argv[5] || path.relative(path.dirname(htmlFile), scriptFile).replace(/\\/g, "/");
+const outputHtmlFile = process.argv[6] || htmlFile;
+const scriptSrc = process.argv[5] || path.relative(path.dirname(outputHtmlFile), scriptFile).replace(/\\/g, "/");
 
 // This is deliberate bot-scraping resistance for the public web build. It does
 // not provide cryptographic secrecy because the decrypting script ships too.
@@ -50,41 +51,76 @@ const vars = readVars(varsFile);
 let html = fs.readFileSync(htmlFile, "utf8");
 const key = crypto.randomBytes(32);
 
+const requiredContacts = [
+  { key: "RESUME_EMAIL", placeholder: "{{RESUME_EMAIL}}" },
+  { key: "RESUME_PHONE", placeholder: "{{RESUME_PHONE}}" },
+  { key: "RESUME_PHONE", placeholder: "{{RESUME_PHONE_HREF}}" },
+];
+
+for (const contact of requiredContacts) {
+  if (html.includes(contact.placeholder) && !vars[contact.key]) {
+    console.error(`Missing ${contact.key}; provide contact values through environment variables.`);
+    process.exit(1);
+  }
+}
+
 const contacts = [
   {
     label: vars.RESUME_EMAIL,
     href: vars.RESUME_EMAIL ? `mailto:${vars.RESUME_EMAIL}` : undefined,
-    sourceHrefs: vars.RESUME_EMAIL ? [`mailto:${vars.RESUME_EMAIL}`] : [],
+    sourceLabels: ["{{RESUME_EMAIL}}", vars.RESUME_EMAIL],
+    sourceHrefs: vars.RESUME_EMAIL ? ["mailto:{{RESUME_EMAIL}}", `mailto:${vars.RESUME_EMAIL}`] : [],
+    placeholderHrefs: ["mailto:{{RESUME_EMAIL}}"],
     fallback: "email",
   },
   {
     label: vars.RESUME_PHONE,
     href: vars.RESUME_PHONE ? phoneHref(vars.RESUME_PHONE) : undefined,
-    sourceHrefs: vars.RESUME_PHONE ? [phoneHref(vars.RESUME_PHONE), `tel:${vars.RESUME_PHONE}`, phoneSourceHref(vars.RESUME_PHONE)] : [],
+    sourceLabels: ["{{RESUME_PHONE}}", vars.RESUME_PHONE],
+    sourceHrefs: vars.RESUME_PHONE ? ["tel:{{RESUME_PHONE_HREF}}", phoneHref(vars.RESUME_PHONE), `tel:${vars.RESUME_PHONE}`, phoneSourceHref(vars.RESUME_PHONE)] : [],
+    placeholderHrefs: ["tel:{{RESUME_PHONE_HREF}}"],
     fallback: "phone",
   },
 ].filter((contact) => contact.label && contact.href);
 
 for (const contact of contacts) {
-  const label = escapeHtml(contact.label);
+  const sourceLabels = [...new Set(contact.sourceLabels.filter(Boolean))];
 
   for (const sourceHref of contact.sourceHrefs) {
     const href = escapeHtml(sourceHref);
-    const linkPattern = new RegExp(
-      `<a\\s+href="${escapeRegExp(href)}">${escapeRegExp(label)}</a>`,
-      "g",
-    );
+
+    for (const sourceLabel of sourceLabels) {
+      const label = escapeHtml(sourceLabel);
+      const linkPattern = new RegExp(
+        `<a\\s+href="${escapeRegExp(href)}">${escapeRegExp(label)}</a>`,
+        "g",
+      );
+
+      html = html.replace(
+        linkPattern,
+        obfuscatedLink(key, contact.label, contact.href, contact.fallback),
+      );
+    }
+  }
+
+  for (const sourceLabel of sourceLabels) {
+    const label = escapeHtml(sourceLabel);
 
     html = html.replace(
-      linkPattern,
-      obfuscatedLink(key, contact.label, contact.href, contact.fallback),
+      new RegExp(escapeRegExp(label), "g"),
+      obfuscatedText(key, contact.label, contact.fallback),
     );
   }
 
-  html = html.replace(
-    new RegExp(escapeRegExp(label), "g"),
-    obfuscatedText(key, contact.label, contact.fallback),
-  );
+  for (const placeholderHref of contact.placeholderHrefs) {
+    html = html.replace(new RegExp(escapeRegExp(escapeHtml(placeholderHref)), "g"), "#");
+  }
+}
+
+const unresolvedContactPlaceholder = html.match(/\{\{RESUME_(?:EMAIL|PHONE|PHONE_HREF)\}\}/);
+if (unresolvedContactPlaceholder) {
+  console.error("Error: web output still contains unresolved contact placeholders.");
+  process.exit(1);
 }
 
 const decryptScript = `(() => {
@@ -128,5 +164,5 @@ if (html.includes("</head>")) {
   html += `\n${scriptTag}\n`;
 }
 
-fs.writeFileSync(htmlFile, html);
+fs.writeFileSync(outputHtmlFile, html);
 fs.writeFileSync(scriptFile, decryptScript);

@@ -52,6 +52,16 @@ local function emphasized(value)
   return { pandoc.Emph(cell_content(value)) }
 end
 
+local function link_href(value)
+  local href = tostring(value)
+
+  if href:match('^%a[%w+.-]*://') then
+    return href
+  end
+
+  return 'https://' .. href
+end
+
 local function resume_row(left, right, classes)
   local inlines = {}
 
@@ -331,7 +341,7 @@ local function resume_footer(block)
       pandoc.Plain({
         pandoc.Strong({ pandoc.Str('Latest version:') }),
         pandoc.Space(),
-        pandoc.Link({ pandoc.Str(tostring(entry.url)) }, tostring(entry.url)),
+        pandoc.Link({ pandoc.Str(tostring(entry.url)) }, link_href(entry.url)),
       }),
     }
   end
@@ -339,7 +349,7 @@ local function resume_footer(block)
   return pandoc.Div({
     pandoc.Plain({
       pandoc.Span({ pandoc.Str(tostring(entry.date)) }),
-      pandoc.Span({ pandoc.Str(tostring(entry.url)) }),
+      pandoc.Span({ pandoc.Link({ pandoc.Str(tostring(entry.url)) }, link_href(entry.url)) }),
     }),
   }, pandoc.Attr('', { 'resume-footer' }))
 end
