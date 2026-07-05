@@ -1,4 +1,4 @@
-name: Build Web Resume
+name: Build and Deploy Resume
 
 on:
   workflow_dispatch:
@@ -34,5 +34,28 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-resume
-          path: build/web/*
+          path: build/web
           if-no-files-found: error
+
+  deploy:
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    needs: build-web
+    timeout-minutes: 15
+    environment: ${{ inputs.environment || 'PROD' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-resume
+          path: build/web
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
