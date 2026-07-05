@@ -1,0 +1,12 @@
+@media print {
+  @page {
+    margin: 0.5in 0.65in 0.8in;
+  }
+
+  .resume-footer {
+    position: fixed;
+    right: 0;
+    bottom: -0.3in;
+    left: 0;
+  }
+}

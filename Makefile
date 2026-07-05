@@ -6,6 +6,7 @@ WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
 BASENAME ?= resume
 BUILD_SOURCE ?= $(BUILD_DIR)/$(BASENAME).rendered.md
 STYLESHEET ?= assets/styles/resume.css
+PDF_STYLESHEET ?= assets/styles/resume-pdf.css
 RESUME_ENTRY_FILTER ?= pandoc/filters/resume-entry.lua
 
 # Contact values intentionally come from build-time secrets so the public repo
@@ -85,6 +86,7 @@ pdf: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
 		--standalone \
 		--metadata pagetitle="Resume" \
 		--css $(STYLESHEET) \
+		--css $(PDF_STYLESHEET) \
 		--pdf-engine=weasyprint \
 		--output "$$output"
 
