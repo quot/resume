@@ -2,6 +2,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { phoneHref } = require("./contact-links");
 const { readVars } = require("./read-vars");
 
 const varsFile = process.argv[2] || "resume.md";
@@ -22,11 +23,6 @@ function escapeHtml(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function phoneHref(value) {
-  const normalized = value.replace(/[^0-9+]/g, "").replace(/(?!^)\+/g, "");
-  return normalized ? `tel:${normalized}` : undefined;
 }
 
 function phoneSourceHref(value) {
@@ -64,7 +60,7 @@ const contacts = [
   {
     label: vars.RESUME_PHONE,
     href: vars.RESUME_PHONE ? phoneHref(vars.RESUME_PHONE) : undefined,
-    sourceHrefs: vars.RESUME_PHONE ? [`tel:${vars.RESUME_PHONE}`, phoneSourceHref(vars.RESUME_PHONE)] : [],
+    sourceHrefs: vars.RESUME_PHONE ? [phoneHref(vars.RESUME_PHONE), `tel:${vars.RESUME_PHONE}`, phoneSourceHref(vars.RESUME_PHONE)] : [],
     fallback: "phone",
   },
 ].filter((contact) => contact.label && contact.href);

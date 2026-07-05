@@ -101,15 +101,6 @@ h3 + p + ul {
   clear: both;
 }
 
-.project-link {
-  margin: 0 0 0.08rem;
-  font-size: 9pt;
-}
-
-.project-link + ul {
-  margin-top: 0.08rem;
-}
-
 .resume-entry {
   margin: 0.3rem 0 0.08rem;
 }
@@ -121,7 +112,7 @@ h3 + p + ul {
   line-height: 1.15;
 }
 
-.resume-row span:last-child {
+.resume-row span + span {
   flex-shrink: 0;
   max-width: 45%;
   text-align: right;

@@ -44,57 +44,41 @@ local function cell_content(value)
   return { pandoc.Str(tostring(value)) }
 end
 
+local function has_value(value)
+  return value ~= nil and tostring(value) ~= ''
+end
+
 local function emphasized(value)
   return { pandoc.Emph(cell_content(value)) }
 end
 
 local function resume_row(left, right, classes)
-  return pandoc.Div({
-    pandoc.Plain({
-      pandoc.Span(cell_content(left)),
-      pandoc.Space(),
-      pandoc.Span(cell_content(right)),
-    })
-  }, pandoc.Attr('', classes))
-end
+  local inlines = {}
 
-local function bullet_list(items)
-  local blocks = {}
-
-  if type(items) ~= 'table' then
-    return blocks
+  if has_value(left) then
+    table.insert(inlines, pandoc.Span(cell_content(left)))
+  elseif has_value(right) then
+    table.insert(inlines, pandoc.Span({}))
   end
 
-  for _, item in ipairs(items) do
-    table.insert(blocks, { pandoc.Plain({ pandoc.Str(tostring(item)) }) })
+  if has_value(right) then
+    table.insert(inlines, pandoc.Space())
+    table.insert(inlines, pandoc.Span(cell_content(right)))
   end
 
-  if #blocks == 0 then
-    return blocks
-  end
-
-  return { pandoc.BulletList(blocks) }
+  return pandoc.Div({ pandoc.Plain(inlines) }, pandoc.Attr('', classes))
 end
 
 local resume_entry_fields = {
   title = true,
   dates = true,
   company = true,
-  location = true,
-  include = true,
-  bullets = true,
-}
-
-local project_entry_fields = {
-  title = true,
   link = true,
-  include = true,
-  bullets = true,
+  location = true,
 }
 
 local skill_entry_fields = {
   category = true,
-  include = true,
   skills = true,
 }
 
@@ -110,7 +94,6 @@ local resume_footer_fields = {
 local contact_entry_fields = {
   label = true,
   href = true,
-  include = true,
 }
 
 local function validate_fields(entry, allowed_fields, entry_type)
@@ -135,109 +118,71 @@ local function resume_entry(block)
 
   validate_fields(entry, resume_entry_fields, 'resume-entry')
 
-  -- Keep alternate entries in source so builds can be tailored per job without
-  -- rewriting the resume structure or losing role-specific experience blocks.
-  if entry.include == false then
-    return {}
-  end
-
-  if not entry.title or not entry.dates or not entry.company or not entry.location then
-    error('resume-entry JSON requires title, dates, company, and location')
+  if not entry.title then
+    error('resume-entry JSON requires title')
   end
 
   if is_markdown_output() then
     local lines = {
       '### ' .. markdown_escape(entry.title),
       '',
-      '- *' .. markdown_escape(entry.company) .. '*',
-      '- *' .. markdown_escape(entry.dates) .. '*',
-      '- *' .. markdown_escape(entry.location) .. '*',
-      '',
     }
 
-    if type(entry.bullets) == 'table' then
-      for _, item in ipairs(entry.bullets) do
-        table.insert(lines, '- ' .. markdown_escape(item))
-      end
+    if has_value(entry.company) then
+      table.insert(lines, '- *' .. markdown_escape(entry.company) .. '*')
+    end
+
+    if has_value(entry.link) then
+      local link = tostring(entry.link)
+      table.insert(lines, '- [' .. markdown_escape(link) .. '](' .. link .. ')')
+    end
+
+    if has_value(entry.dates) then
+      table.insert(lines, '- *' .. markdown_escape(entry.dates) .. '*')
+    end
+
+    if has_value(entry.location) then
+      table.insert(lines, '- *' .. markdown_escape(entry.location) .. '*')
     end
 
     return pandoc.RawBlock('markdown', table.concat(lines, '\n'))
   end
 
-  local blocks = {
-    pandoc.Div({
-      resume_row(entry.title, entry.dates, { 'resume-row', 'resume-title-row' }),
-      resume_row(emphasized(entry.company), emphasized(entry.location), { 'resume-row' }),
-    }, pandoc.Attr('', { 'resume-entry' }))
+  local rows = {
+    resume_row(entry.title, entry.dates, { 'resume-row', 'resume-title-row' }),
   }
 
-  for _, list in ipairs(bullet_list(entry.bullets)) do
-    table.insert(blocks, list)
-  end
+  if has_value(entry.company) or has_value(entry.link) or has_value(entry.location) then
+    local left = nil
 
-  return blocks
-end
-
-local function project_entry(block)
-  local entry = decode_entry(block, 'project-entry')
-
-  validate_fields(entry, project_entry_fields, 'project-entry')
-
-  -- See resume_entry: include toggles support job-specific resume variants.
-  if entry.include == false then
-    return {}
-  end
-
-  if not entry.title then
-    error('project-entry JSON requires title')
-  end
-
-  if is_markdown_output() then
-    local lines = {
-      '### ' .. markdown_escape(entry.title),
-      '',
-    }
-
-    if entry.link then
+    if has_value(entry.company) and has_value(entry.link) then
       local link = tostring(entry.link)
-      table.insert(lines, '[' .. markdown_escape(link) .. '](' .. link .. ')')
-      table.insert(lines, '')
+      left = {
+        pandoc.Emph(cell_content(entry.company)),
+        pandoc.LineBreak(),
+        pandoc.Link({ pandoc.Str(link) }, link),
+      }
+    elseif has_value(entry.company) then
+      left = emphasized(entry.company)
+    elseif has_value(entry.link) then
+      local link = tostring(entry.link)
+      left = { pandoc.Link({ pandoc.Str(link) }, link) }
     end
 
-    if type(entry.bullets) == 'table' then
-      for _, item in ipairs(entry.bullets) do
-        table.insert(lines, '- ' .. markdown_escape(item))
-      end
-    end
-
-    return pandoc.RawBlock('markdown', table.concat(lines, '\n'))
+    table.insert(rows, resume_row(
+      left,
+      has_value(entry.location) and emphasized(entry.location) or nil,
+      { 'resume-row' }
+    ))
   end
 
-  local blocks = { pandoc.Header(3, entry.title) }
-
-  if entry.link then
-    local link = tostring(entry.link)
-    table.insert(blocks, pandoc.Div({
-      pandoc.Plain({ pandoc.Link({ pandoc.Str(link) }, link) }),
-    }, pandoc.Attr('', { 'project-link' })))
-  end
-
-  for _, list in ipairs(bullet_list(entry.bullets)) do
-    table.insert(blocks, list)
-  end
-
-  return blocks
+  return pandoc.Div(rows, pandoc.Attr('', { 'resume-entry' }))
 end
 
 local function skill_entry(block)
   local entry = decode_entry(block, 'skill-entry')
 
   validate_fields(entry, skill_entry_fields, 'skill-entry')
-
-  -- See resume_entry: include toggles support job-specific resume variants.
-  if entry.include == false then
-    return {}
-  end
 
   if not entry.category or type(entry.skills) ~= 'table' or #entry.skills == 0 then
     error('skill-entry JSON requires category and skills')
@@ -269,11 +214,6 @@ end
 
 local function contact_item(entry)
   validate_fields(entry, contact_entry_fields, 'contact-list entry')
-
-  -- See resume_entry: include toggles support job-specific resume variants.
-  if entry.include == false then
-    return nil
-  end
 
   if not entry.label then
     error('contact-list entries require label')
@@ -309,13 +249,11 @@ local function contact_list(block)
         end
 
         validate_fields(item, contact_entry_fields, 'contact-list entry')
-        if item.include ~= false then
-          if not item.label then
-            error('contact-list entries require label')
-          end
-
-          table.insert(lines, markdown_link(item))
+        if not item.label then
+          error('contact-list entries require label')
         end
+
+        table.insert(lines, markdown_link(item))
       end
     end
 
@@ -433,10 +371,6 @@ function CodeBlock(block)
 
   if has_class(block.classes, 'resume-entry') then
     return resume_entry(block)
-  end
-
-  if has_class(block.classes, 'project-entry') then
-    return project_entry(block)
   end
 
   if has_class(block.classes, 'skill-entry') then

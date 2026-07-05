@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const { phoneHrefValue } = require("./contact-links");
 const { readVars } = require("./read-vars");
 
 const inputFile = process.argv[2] || "resume.md";
@@ -12,6 +13,9 @@ if (!fs.existsSync(inputFile)) {
 }
 
 const vars = readVars(inputFile);
+if (vars.RESUME_PHONE) {
+  vars.RESUME_PHONE_HREF = phoneHrefValue(vars.RESUME_PHONE);
+}
 const source = fs.readFileSync(inputFile, "utf8");
 const rendered = source.replace(/\{\{([A-Z0-9_]+)\}\}/g, (placeholder, key) => {
   return Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : placeholder;

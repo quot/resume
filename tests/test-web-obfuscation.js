@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const { phoneHref } = require("../scripts/contact-links");
 const { readVars } = require("../scripts/read-vars");
 
 const varsFile = process.argv[2] || "resume.md";
@@ -24,11 +25,6 @@ function listFiles(directory) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
-}
-
-function phoneHref(value) {
-  const normalized = value.replace(/[^0-9+]/g, "").replace(/(?!^)\+/g, "");
-  return normalized ? `tel:${normalized}` : undefined;
 }
 
 const vars = readVars(varsFile);

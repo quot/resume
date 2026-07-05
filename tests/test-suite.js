@@ -11,12 +11,12 @@ const sourceFile = path.join(tmp, "resume.md");
 const buildDir = path.join(tmp, "build");
 const webDir = path.join(buildDir, "web");
 
-const contactEnv = { RESUME_EMAIL: "env@example.com", RESUME_PHONE: "+1 555 333 4444" };
+const contactEnv = { RESUME_EMAIL: "env@example.com", RESUME_PHONE: "+1 (555) 333-4444" };
 const projectTitle = "Zig 3D Mesh Generator";
 const projectLink = "https://example.com/project";
 const baseSource = read(path.join(root, "resume.md"))
   .replace('RESUME_LATEST_URL: "acote.dev/resume"', 'RESUME_LATEST_URL: "https://example.com/resume"')
-  .replace('  "link": "https://github.com/quot/donut",', `  "link": "${projectLink}",`);
+  .replace('  "link": "https://github.com/quot/donut"', `  "link": "${projectLink}"`);
 
 function run(name, command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -197,7 +197,7 @@ try {
   ], { env: contactEnv });
   const argRendered = read(path.join(buildDir, "resume.pdf"));
   assert("make argument email wins", argRendered.includes("arg@example.com") && !argRendered.includes("env@example.com"));
-  assert("make argument phone wins", argRendered.includes("+1 555 999 0000") && !argRendered.includes("+1 555 333 4444"));
+  assert("make argument phone wins", argRendered.includes("+1 555 999 0000") && !argRendered.includes("+1 (555) 333-4444"));
 
   fs.writeFileSync(sourceFile, baseSource);
   make("web resolves source placeholders before pandoc", ["web", `PANDOC=${fakePandoc}`], { env: contactEnv });
@@ -211,6 +211,63 @@ try {
   assert("pdf output includes environment contact values", placeholderPdf.includes(contactEnv.RESUME_EMAIL) && placeholderPdf.includes(contactEnv.RESUME_PHONE));
   assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("https://example.com/resume"));
 
+  fs.writeFileSync(sourceFile, baseSource.replace('  "title": "Software Developer",', '  "include": true,\n  "title": "Software Developer",'));
+  make("include field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+
+  fs.writeFileSync(sourceFile, baseSource.replace(`  "link": "${projectLink}"`, `  "link": "${projectLink}",\n  "bullets": []`));
+  make("resume-entry bullets field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+
+  const optionalMetadataSource = baseSource.replace("## Skills", `\`\`\`resume-entry
+{
+  "title": "Dates Only",
+  "dates": "2024 - Present"
+}
+\`\`\`
+
+\`\`\`resume-entry
+{
+  "title": "Linked Entry",
+  "company": "Linked Co",
+  "link": "https://example.com/resume-entry",
+  "location": "Remote"
+}
+\`\`\`
+
+\`\`\`resume-entry
+{
+  "title": "Location Only",
+  "location": "Remote"
+}
+\`\`\`
+
+\`\`\`resume-entry
+{
+  "title": "Title Only"
+}
+\`\`\`
+
+## Skills`);
+  fs.writeFileSync(sourceFile, optionalMetadataSource);
+  make("resume-entry optional metadata markdown succeeds", ["markdown"], { env: contactEnv });
+  const optionalMarkdown = read(path.join(buildDir, "resume.md"));
+  assert("markdown resume-entry metadata fields are optional", optionalMarkdown.includes("### Dates Only\n\n- *2024 - Present*") && optionalMarkdown.includes("### Location Only\n\n- *Remote*") && optionalMarkdown.includes("### Title Only"));
+  assert("markdown resume-entry link renders under company", optionalMarkdown.includes("### Linked Entry\n\n- *Linked Co*\n- [https://example.com/resume-entry](https://example.com/resume-entry)\n- *Remote*"));
+  make("resume-entry optional metadata web succeeds", ["web"], { env: contactEnv });
+  const optionalWeb = read(path.join(webDir, "index.html"));
+  const linkedEntryIndex = optionalWeb.indexOf("<span>Linked Entry</span>");
+  const linkedEntryStart = optionalWeb.lastIndexOf('<div class="resume-entry">', linkedEntryIndex);
+  const linkedEntryEnd = optionalWeb.indexOf('<div class="resume-entry">', linkedEntryIndex + 1);
+  const linkedEntry = linkedEntryStart >= 0 ? optionalWeb.slice(linkedEntryStart, linkedEntryEnd >= 0 ? linkedEntryEnd : optionalWeb.length) : "";
+  const linkedCompanyIndex = linkedEntry.indexOf("<em>Linked Co</em>");
+  const linkedHrefIndex = linkedEntry.indexOf('href="https://example.com/resume-entry"');
+  const linkedTextIndex = linkedEntry.indexOf(">https://example.com/resume-entry</a>");
+  assert("web resume-entry link renders under company", linkedCompanyIndex >= 0 && linkedCompanyIndex < linkedHrefIndex && linkedHrefIndex < linkedTextIndex, linkedEntry);
+  const titleOnlyIndex = optionalWeb.indexOf("<span>Title Only</span>");
+  const titleOnlyStart = optionalWeb.lastIndexOf('<div class="resume-entry">', titleOnlyIndex);
+  const titleOnlyEnd = optionalWeb.indexOf('<div class="resume-entry">', titleOnlyIndex + 1);
+  const titleOnlyEntry = titleOnlyStart >= 0 ? optionalWeb.slice(titleOnlyStart, titleOnlyEnd >= 0 ? titleOnlyEnd : optionalWeb.length) : "";
+  assert("web title-only resume-entry omits metadata row", titleOnlyEntry && !titleOnlyEntry.includes('<div class="resume-row">'), titleOnlyEntry);
+
   fs.writeFileSync(sourceFile, baseSource);
 
   make("markdown build succeeds", ["markdown"], { env: contactEnv });
@@ -221,15 +278,15 @@ try {
   assert("markdown build removes rendered intermediate", !fs.existsSync(renderedBuildFile));
   assert("markdown output has no unresolved contact placeholders", !markdown.includes("{{RESUME_EMAIL}}") && !markdown.includes("{{RESUME_PHONE}}"));
   assert("markdown output includes environment contact values", markdown.includes(contactEnv.RESUME_EMAIL) && markdown.includes(contactEnv.RESUME_PHONE));
-  assert("markdown contact entries use one item per line", markdown.includes("<env@example.com>\n[+1 555 333 4444](tel:+1 555 333 4444)\n[linkedin.com/in/alexcoté](https://linkedin.com/in/alexcoté)\n[github.com/quot](https://github.com/quot)"));
-  assert("markdown output omits excluded entries", !markdown.includes("TEST!!!!!!!!!! This should not display!!!!"));
-  assert("markdown output omits custom blocks", !markdown.includes("```resume-entry") && !markdown.includes("```project-entry") && !markdown.includes("```skill-entry") && !markdown.includes("```contact-list") && !markdown.includes("```tag-line"));
+  assert("markdown contact entries use one item per line", markdown.includes("<env@example.com>\n[+1 (555) 333-4444](tel:+15553334444)\n[linkedin.com/in/alexcoté](https://linkedin.com/in/alexcoté)\n[github.com/quot](https://github.com/quot)"));
+  assert("markdown output omits commented sections", !markdown.includes("System Administrator") && !markdown.includes("A+ Certified"));
+  assert("markdown output omits custom blocks", !markdown.includes("```resume-entry") && !markdown.includes("```skill-entry") && !markdown.includes("```contact-list") && !markdown.includes("```tag-line"));
   assert("markdown output includes tag line", markdown.includes("Backend Software Engineer | JVM, Kotlin, Kafka, Search, Distributed Systems"));
   assert("markdown output omits resume HTML divs", !markdown.includes("<div class=\"resume-entry\">") && !markdown.includes("<div class=\"resume-footer\">"));
   assert("markdown output omits HTML comments", !markdown.includes("<!--"));
   assert("markdown resume entries use heading and metadata bullets", markdown.includes("### Software Developer\n\n- *C Spire*\n- *Jul 2018 - Present*\n- *Ridgeland, MS*"));
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
-  assert("markdown project entries render link before bullets", markdown.includes(`### ${projectTitle}\n\n[${projectLink}](${projectLink})\n\n- A work-in-progress project mainly used for learning Zig and graphics programming.`));
+  assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- A work-in-progress project mainly used for learning Zig and graphics programming.`));
   assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel, HTMX\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle"));
   assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("https://example.com/resume"));
 
@@ -244,7 +301,7 @@ try {
   assert("web index has encrypted contact attributes", /data-obfuscated-contact/.test(read(path.join(webDir, "index.html"))));
   assert("resume entry company and location are italicized", read(path.join(webDir, "index.html")).includes("<em>C Spire</em>") && read(path.join(webDir, "index.html")).includes("<em>Ridgeland, MS</em>"));
   assert("web tag line is centered", read(path.join(webDir, "index.html")).includes('class="tag-line"') && read(path.join(webDir, "assets", "styles", "resume.css")).includes(".tag-line") && read(path.join(webDir, "assets", "styles", "resume.css")).includes("text-align: center"));
-  assert("web project entries render link", read(path.join(webDir, "index.html")).includes(`<a href="${projectLink}">${projectLink}</a>`));
+  assert("web project resume-entry renders link", read(path.join(webDir, "index.html")).includes(`href="${projectLink}"`));
   assertNoPlainContact(contactEnv);
 
   const firstPayload = firstContactPayload();
