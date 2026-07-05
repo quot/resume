@@ -56,12 +56,15 @@ yadda yadda yadda
 }
 ```
 
-- Maintain and manage 200+ middleware JVM (Java, Scala, Kotlin) microservices along with various systems they interact with (Solr, Kafka, Redis).
-- Implemented eSIM activation flows with Microsoft and Idemia, enabling customers to activate service directly from Windows tablets.
-- Built an event-driven search indexing system to manage customer search used by POS systems and backend services that require fast data retrieval. Search data indexed with all change events. Used Kafka for event messaging, Solr for indexing and search, and Kafka Connect to stream data into Solr. Project included creating a service that allows full reindexing using Akka Streams to process all customer data (10M+ records) from multiple databases within 2 hours.
-- Created the C Spire OSS employee working group to fund open source software used within C Spire, build policies to allow for contributing back to open source projects, and begin work on open sourcing projects made within C Spire. The group works heavily with C Spire's Security, Legal, and Executive teams to make official changes in how the company interacts with OSS.
-- Built an internal wiki for developers to easily manage documentation through markdown files managed by git. The existing setup uses GitLab actions with a custom preprocessor to build a static internal site. Currently used by ~50 developers and has been picked up to be the starting point of an AI knowledge base for all developers within the company.
-- Led the team-wide adoption of Kotlin, Ktor, and Gradle for new microservices, replacing Scala/Akka HTTP/Maven as the default backend stack.
+- Maintain and support 200+ JVM-based middleware microservices across Java, Scala, and Kotlin, integrating with systems such as Solr, Kafka, Redis, and internal business platforms.
+- Built an event-driven customer search indexing platform used by POS systems and backend services for low-latency customer data retrieval.
+  - Designed Kafka-based change-event pipelines and Solr indexing workflows to keep customer search data synchronized across multiple source systems.
+  - Developed a parallel Akka Streams reindexing service that processes 10M+ customer records from multiple databases in under 2 hours.
+- Implemented eSIM activation integrations with Microsoft and Idemia, enabling customers to activate wireless service directly from Windows tablets.
+- Founded the C Spire OSS employee working group to fund open source software, establish contribution policies, and support the release of internal projects.
+  - Partner with Security, Legal, and Executive teams to define company-wide policies for open source usage, contribution, and project release.
+- Created an internal Markdown/Git-based developer documentation platform used by ~50 developers and adopted as the foundation for a company-wide developer AI knowledge base.
+- Led team-wide adoption of Kotlin, Ktor, and Gradle for new microservices, replacing Scala, Akka HTTP, and Maven as the team’s default backend stack.
 
 <!--
 ```resume-entry
@@ -107,9 +110,9 @@ yadda yadda yadda
 }
 ```
 
-- A work-in-progress project mainly used for learning Zig and graphics programming.
-- Using Zig, Sokol, and OpenGL to build meshes from n-gon faces with automatic normal creation.
-- The project's goal is to eventually be a hobby-level 3D modelling software that allows for fast and easy low-poly modelling from scratch.
+- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.
+- Generates mesh geometry from n-gon faces with automatic normal calculation.
+- Exploring low-poly modeling workflows, graphics programming, and custom mesh data structures.
 
 ```resume-entry
 {
@@ -135,7 +138,7 @@ yadda yadda yadda
 ```skill-entry
 {
   "category": "Backend",
-  "skills": ["Spring Boot", "Ktor", "Akka", "Akka HTTP", "Hibernate", "Apache Camel", "HTMX"]
+  "skills": ["Spring Boot", "Ktor", "Akka", "Akka HTTP", "Hibernate", "Apache Camel"]
 }
 ```
 
@@ -143,6 +146,13 @@ yadda yadda yadda
 {
   "category": "Data & Infrastructure",
   "skills": ["Kafka", "Kafka Connect", "Solr", "Redis", "Docker", "Podman", "Linux", "Git", "Maven", "Gradle"]
+}
+```
+
+```skill-entry
+{
+  "category": "Web",
+  "skills": ["HTMX", "HTML/CSS", "JavaScript"]
 }
 ```
 
@@ -167,8 +177,8 @@ yadda yadda yadda
 }
 ```
 
-- Member of MSU's ACM and ACM-W clubs.
-- Worked as a System Admin for the CS department during the last year managing staff PCs and Linux servers.
+<!-- - Member of MSU's ACM and ACM-W clubs. -->
+- Worked as a CS department system administrator managing staff PCs and Linux servers.
 
 ```resume-entry
 {
