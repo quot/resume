@@ -5,7 +5,7 @@ on:
     inputs:
       environment:
         required: true
-        default: production
+        default: PROD
   push:
     branches:
       - main
@@ -15,7 +15,7 @@ jobs:
     name: Build web artifact
     runs-on: ubuntu-latest
     container: node:alpine
-    environment: ${{ inputs.environment || 'production' }}
+    environment: ${{ inputs.environment || 'PROD' }}
 
     steps:
       - name: Install build dependencies

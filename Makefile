@@ -44,7 +44,16 @@ web: $(WEB_DIR)
 	cp $(STYLESHEET) $(WEB_ASSETS_DIR)/styles/resume.css
 	cp web/headers.txt $(WEB_DIR)/_headers
 	cp assets/fonts/Lato/*.ttf $(WEB_ASSETS_DIR)/fonts/Lato/
-	@tmp_source="$$(mktemp "$(BUILD_DIR)/web.source.XXXXXX.md")"; \
+	@set -e; \
+	if [ -z "$$RESUME_EMAIL" ]; then \
+		printf 'Missing RESUME_EMAIL; provide it through the environment.\n' >&2; \
+		exit 1; \
+	fi; \
+	if [ -z "$$RESUME_PHONE" ]; then \
+		printf 'Missing RESUME_PHONE; provide it through the environment.\n' >&2; \
+		exit 1; \
+	fi; \
+	tmp_source="$$(mktemp "$(BUILD_DIR)/web.source.XXXXXX")"; \
 	tmp_html="$$(mktemp "$(BUILD_DIR)/web.html.XXXXXX")"; \
 	trap 'rm -f "$$tmp_source" "$$tmp_html"' EXIT; \
 	./scripts/render-resume.js --preserve-contact-placeholders $(SOURCE) "$$tmp_source"; \
@@ -60,6 +69,7 @@ web: $(WEB_DIR)
 		--metadata pagetitle="Resume" \
 		--include-in-header web/head.html \
 		--css assets/styles/resume.css \
+		--from=markdown \
 		--to=html \
 		--output "$$tmp_html"; \
 	./scripts/obfuscate-html-contacts.js $(SOURCE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
