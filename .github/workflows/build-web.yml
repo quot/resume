@@ -1,0 +1,38 @@
+name: Build Web Resume
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        default: production
+  push:
+    branches:
+      - main
+
+jobs:
+  build-web:
+    name: Build web artifact
+    runs-on: ubuntu-latest
+    container: node:alpine
+    environment: ${{ inputs.environment || 'production' }}
+
+    steps:
+      - name: Install build dependencies
+        run: apk add --no-cache git make pandoc
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build web resume
+        run: make web
+        env:
+          RESUME_EMAIL: ${{ secrets.RESUME_EMAIL }}
+          RESUME_PHONE: ${{ secrets.RESUME_PHONE }}
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-resume
+          path: build/web/*
+          if-no-files-found: error

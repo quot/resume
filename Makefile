@@ -60,6 +60,7 @@ web: $(WEB_DIR)
 		--metadata pagetitle="Resume" \
 		--include-in-header web/head.html \
 		--css assets/styles/resume.css \
+		--to=html \
 		--output "$$tmp_html"; \
 	./scripts/obfuscate-html-contacts.js $(SOURCE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
 
