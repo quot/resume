@@ -105,8 +105,22 @@ yadda yadda yadda
 
 ```resume-entry
 {
+  "title": "Helios - Sublime Text Plugin",
+  "dates": "May 2025 - Present",
+  "location": "Python, Sublime Text APIs",
+  "link": "https://github.com/quot/Helios"
+}
+```
+
+- Sublime Text plugin that ports Helix-style modal editing into Sublime, including normal, insert, select, and view modes with mode-aware keybindings.
+- Implemented core editing behavior such as movement commands, selection manipulation, registers, yank/delete/change operations, paste behavior, and plugin state management.
+
+
+```resume-entry
+{
   "title": "Zig 3D Mesh Generator",
   "dates": "Apr 2026 - Present",
+  "location": "Zig, Sokol, OpenGL",
   "link": "https://github.com/quot/donut"
 }
 ```
@@ -115,11 +129,12 @@ yadda yadda yadda
 - Generates mesh geometry from n-gon faces with automatic normal calculation.
 - Exploring low-poly modeling workflows, graphics programming, and custom mesh data structures.
 
+
 ```resume-entry
 {
   "title": "Backend Lead",
   "company": "MSU Software Engineering Senior Design Course",
-  "location": "Starkville, MS",
+  "location": "PostgreSQL, PostGraphile",
   "dates": "Aug 2017 - May 2018"
 }
 ```
@@ -181,7 +196,7 @@ yadda yadda yadda
 <!-- - Member of MSU's ACM and ACM-W clubs. -->
 - Worked as a CS department system administrator managing staff PCs and Linux servers.
 
-```resume-entry
+<!-- ```resume-entry
 {
   "title": "Software Engineering A.A.S.",
   "dates": "Aug 2010 - May 2013",
@@ -191,7 +206,7 @@ yadda yadda yadda
 ```
 
 - Dean's Scholarship recipient.
-- 2013 CIST Student of the Year.
+- 2013 CIST Student of the Year. -->
 
 <!-- This Holmes entry includes the extra year spent working on a networking degree.
 ```resume-entry
