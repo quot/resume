@@ -113,7 +113,7 @@ yadda yadda yadda
 ```
 
 - Sublime Text plugin that ports Helix-style modal editing into Sublime, including normal, insert, select, and view modes with mode-aware keybindings.
-- Implemented core editing behavior such as movement commands, selection manipulation, registers, yank/delete/change operations, paste behavior, and plugin state management.
+- Built core editing behavior such as movement commands, selection manipulation, registers, yank/delete/change operations, paste behavior, and plugin state management.
 
 
 ```resume-entry
