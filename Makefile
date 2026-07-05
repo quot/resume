@@ -5,7 +5,6 @@ WEB_DIR ?= $(BUILD_DIR)/web
 WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
 BASENAME ?= resume
 BUILD_SOURCE ?= $(BUILD_DIR)/$(BASENAME).rendered.md
-MARKDOWN_OUTPUT := $(BUILD_DIR)/resume.md
 STYLESHEET ?= assets/styles/resume.css
 RESUME_ENTRY_FILTER ?= pandoc/filters/resume-entry.lua
 
@@ -57,6 +56,11 @@ web: $(WEB_DIR)
 	tmp_html="$$(mktemp "$(BUILD_DIR)/web.html.XXXXXX")"; \
 	trap 'rm -f "$$tmp_source" "$$tmp_html"' EXIT; \
 	./scripts/render-resume.js --preserve-contact-placeholders $(SOURCE) "$$tmp_source"; \
+	resume_name="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_NAME || "")' "$(SOURCE)")"; \
+	if [ -z "$$resume_name" ]; then \
+		printf 'Missing RESUME_NAME in frontmatter of $(SOURCE).\n' >&2; \
+		exit 1; \
+	fi; \
 	latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(SOURCE)")"; \
 	if [ -z "$$latest_url" ]; then \
 		printf 'Missing RESUME_LATEST_URL in frontmatter of $(SOURCE).\n' >&2; \
@@ -66,7 +70,7 @@ web: $(WEB_DIR)
 	$(PANDOC) "$$tmp_source" \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--standalone \
-		--metadata pagetitle="Resume" \
+		--metadata pagetitle="$$resume_name Resume" \
 		--include-in-header web/head.html \
 		--css assets/styles/resume.css \
 		--from=markdown \
@@ -74,21 +78,23 @@ web: $(WEB_DIR)
 		--output "$$tmp_html"; \
 	./scripts/obfuscate-html-contacts.js $(SOURCE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
 
-pdf: $(BUILD_SOURCE) $(BUILD_DIR)
+pdf: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
+	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(SOURCE)).pdf"; \
 	$(PANDOC) $(BUILD_SOURCE) \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--standalone \
 		--metadata pagetitle="Resume" \
 		--css $(STYLESHEET) \
 		--pdf-engine=weasyprint \
-		--output $(BUILD_DIR)/$(BASENAME).pdf
+		--output "$$output"
 
-markdown: $(BUILD_SOURCE) $(BUILD_DIR)
+markdown: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
+	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(SOURCE)).md"; \
 	$(PANDOC) $(BUILD_SOURCE) \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--to=gfm \
 		--wrap=none \
-		--output $(MARKDOWN_OUTPUT)
+		--output "$$output"
 
 test:
 	./tests/test-suite.js

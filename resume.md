@@ -1,8 +1,9 @@
 ---
+RESUME_NAME: "Alex Coté"
 RESUME_LATEST_URL: "acote.dev/resume"
 ---
 
-# Alex Coté
+# {{RESUME_NAME}}
 
 ```contact-list
 {

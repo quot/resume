@@ -15,6 +15,7 @@ const webDir = path.join(buildDir, "web");
 const contactEnv = { RESUME_EMAIL: "env@example.com", RESUME_PHONE: "+1 (555) 333-4444" };
 const projectTitle = "Zig 3D Mesh Generator";
 const projectLink = "https://example.com/project";
+const resumeBasename = "alex_cote_resume";
 const baseSource = read(path.join(root, "resume.md"))
   .replace('  "link": "https://github.com/quot/donut"', `  "link": "${projectLink}"`);
 
@@ -145,6 +146,7 @@ try {
   run("render succeeds", "./scripts/render-resume.js", [sourceFile, renderedFile], { env: contactEnv });
   const rendered = read(renderedFile);
   assert("render has no unresolved placeholders", !/\{\{[A-Z0-9_]+\}\}/.test(rendered));
+  assert("render includes frontmatter name heading", rendered.includes("# Alex Coté"));
   assert("render includes email", rendered.includes(contactEnv.RESUME_EMAIL));
   assert("render includes phone", rendered.includes(contactEnv.RESUME_PHONE));
 
@@ -212,7 +214,7 @@ try {
   assert("web output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderWeb) && placeholderWeb.includes("acote.dev/resume"), placeholderWeb);
 
   make("pdf resolves source placeholders before pandoc", ["pdf", `PANDOC=${fakePandoc}`], { env: contactEnv });
-  const placeholderPdf = read(path.join(buildDir, "resume.pdf"));
+  const placeholderPdf = read(path.join(buildDir, `${resumeBasename}.pdf`));
   assert("pdf output has no unresolved contact placeholders", !placeholderPdf.includes("{{RESUME_EMAIL}}") && !placeholderPdf.includes("{{RESUME_PHONE}}"));
   assert("pdf output includes environment contact values", placeholderPdf.includes(contactEnv.RESUME_EMAIL) && placeholderPdf.includes(contactEnv.RESUME_PHONE));
   assert("pdf output includes footer", /\d{4}-\d{2}-\d{2}/.test(placeholderPdf) && placeholderPdf.includes("acote.dev/resume"));
@@ -255,7 +257,7 @@ try {
 ## Skills`);
   fs.writeFileSync(sourceFile, optionalMetadataSource);
   make("resume-entry optional metadata markdown succeeds", ["markdown"], { env: contactEnv });
-  const optionalMarkdown = read(path.join(buildDir, "resume.md"));
+  const optionalMarkdown = read(path.join(buildDir, `${resumeBasename}.md`));
   assert("markdown resume-entry metadata fields are optional", optionalMarkdown.includes("### Dates Only\n\n- *2024 - Present*") && optionalMarkdown.includes("### Location Only\n\n- *Remote*") && optionalMarkdown.includes("### Title Only"));
   assert("markdown resume-entry link renders under company", optionalMarkdown.includes("### Linked Entry\n\n- **Linked Co**\n- [https://example.com/resume-entry](https://example.com/resume-entry)\n- *Remote*"));
   make("resume-entry optional metadata web succeeds", ["web"], { env: contactEnv });
@@ -277,10 +279,11 @@ try {
   fs.writeFileSync(sourceFile, baseSource);
 
   make("markdown build succeeds", ["markdown"], { env: contactEnv });
-  const markdownFile = path.join(buildDir, "resume.md");
+  const markdownFile = path.join(buildDir, `${resumeBasename}.md`);
   const renderedBuildFile = path.join(buildDir, "resume.rendered.md");
   const markdown = read(markdownFile);
   assert("markdown output exists", fs.existsSync(markdownFile));
+  assert("markdown output filename uses normalized frontmatter name", markdownFile.endsWith("alex_cote_resume.md"));
   assert("markdown build removes rendered intermediate", !fs.existsSync(renderedBuildFile));
   assert("markdown output has no unresolved contact placeholders", !markdown.includes("{{RESUME_EMAIL}}") && !markdown.includes("{{RESUME_PHONE}}"));
   assert("markdown output includes environment contact values", markdown.includes(contactEnv.RESUME_EMAIL) && markdown.includes(contactEnv.RESUME_PHONE));
@@ -302,6 +305,7 @@ try {
   assert("web contact script exists", fs.existsSync(path.join(webDir, "assets", "contact.js")));
   assert("web stylesheet exists", fs.existsSync(path.join(webDir, "assets", "styles", "resume.css")));
   assert("web index disables caching", read(path.join(webDir, "index.html")).includes('http-equiv="Cache-Control"'));
+  assert("web title uses frontmatter name", read(path.join(webDir, "index.html")).includes("<title>Alex Coté Resume</title>"));
   assert("web headers disable caching", read(path.join(webDir, "_headers")).includes("Cache-Control: no-store"));
   assert("web index references contact script", read(path.join(webDir, "index.html")).includes('src="assets/contact.js"'));
   assert("web index has encrypted contact attributes", /data-obfuscated-contact/.test(read(path.join(webDir, "index.html"))));
@@ -329,14 +333,15 @@ try {
   assert("pdf engine is fixed to weasyprint", read(path.join(root, "Makefile")).includes("--pdf-engine=weasyprint"));
   make("clean before pdf-only build succeeds", ["clean"]);
   make("pdf build succeeds", ["pdf"], { env: contactEnv });
-  const pdfFile = path.join(buildDir, "resume.pdf");
+  const pdfFile = path.join(buildDir, `${resumeBasename}.pdf`);
   assert("pdf exists", fs.existsSync(pdfFile));
+  assert("pdf filename uses normalized frontmatter name", pdfFile.endsWith("alex_cote_resume.pdf"));
   assert("pdf is non-empty", fs.statSync(pdfFile).size > 0);
   assert("pdf-only build does not create contact script", !fs.existsSync(path.join(webDir, "assets", "contact.js")));
 
   make("full build succeeds", [], { env: contactEnv });
   assert("full build pdf exists", fs.existsSync(pdfFile));
-  assert("full build markdown exists", fs.existsSync(path.join(buildDir, "resume.md")));
+  assert("full build markdown exists", fs.existsSync(path.join(buildDir, `${resumeBasename}.md`)));
   assert("full build removes rendered intermediate", !fs.existsSync(renderedBuildFile));
   assert("full build web index exists", fs.existsSync(path.join(webDir, "index.html")));
   assert("full build web headers exists", fs.existsSync(path.join(webDir, "_headers")));
