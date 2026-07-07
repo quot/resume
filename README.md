@@ -1,3 +1,5 @@
+# Resume
+
 [resume.acote.dev](https://resume.acote.dev/)
 
 ## Requirements
@@ -9,18 +11,16 @@
 
 ## Build
 
-Full:
-
-Set `RESUME_EMAIL` and `RESUME_PHONE` in your shell or CI environment, then run:
+With `RESUME_EMAIL` and `RESUME_PHONE` envionment variables set:
 
 ```sh
 make
 ```
 
-Web Only:
-
-Set `RESUME_EMAIL` and `RESUME_PHONE` in your shell or CI environment, then run:
+Or:
 
 ```sh
-make web
+RESUME_EMAIL='email@example.com' RESUME_PHONE='+1 (555) 999-0000' make {TARGET}
 ```
+
+**Targets**: `all`, `web`, `pdf`, `markdown`, `test`, `clean`
