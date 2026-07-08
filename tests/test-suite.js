@@ -141,6 +141,28 @@ function assertNoPlainContact(values) {
 try {
   fs.writeFileSync(sourceFile, baseSource);
 
+  const previousEmail = process.env.RESUME_EMAIL;
+  const previousPhone = process.env.RESUME_PHONE;
+  delete process.env.RESUME_EMAIL;
+  delete process.env.RESUME_PHONE;
+  const varsSource = path.join(tmp, "vars.md");
+  fs.writeFileSync(varsSource, `---
+# ignored comment
+RESUME_NAME: 'Quoted Candidate'
+RESUME_LATEST_URL: "latest.example"
+RESUME_SUMMARY: "Line one\\nLine two"
+RESUME_EMAIL: "frontmatter@example.com"
+---
+`);
+  const parsedVars = readVars(varsSource);
+  assert("frontmatter parser handles quotes and escaped newlines", parsedVars.RESUME_NAME === "Quoted Candidate" && parsedVars.RESUME_SUMMARY === "Line one\nLine two");
+  assert("frontmatter parser ignores contact values without environment", !Object.prototype.hasOwnProperty.call(parsedVars, "RESUME_EMAIL"));
+  assert("missing frontmatter returns empty vars", Object.keys(readVars(path.join(root, "README.md"))).length === 0);
+  if (previousEmail === undefined) delete process.env.RESUME_EMAIL;
+  else process.env.RESUME_EMAIL = previousEmail;
+  if (previousPhone === undefined) delete process.env.RESUME_PHONE;
+  else process.env.RESUME_PHONE = previousPhone;
+
   const renderedFile = path.join(tmp, "rendered.md");
   run("render succeeds", "./scripts/render-resume.js", [sourceFile, renderedFile], { env: contactEnv });
   const rendered = read(renderedFile);
@@ -185,6 +207,26 @@ try {
   const legacyInputVariable = "SOUR" + "CE";
   assert("makefile omits legacy input variable", !new RegExp(`\\b${legacyInputVariable}\\b`).test(makefile));
 
+  const missingNameSource = path.join(tmp, "missing-name.md");
+  fs.writeFileSync(missingNameSource, `---
+RESUME_LATEST_URL: "resume.test"
+---
+`);
+  run("resume basename missing name fails", "./scripts/resume-basename.js", [missingNameSource], { shouldFail: true });
+  const unusableNameSource = path.join(tmp, "unusable-name.md");
+  fs.writeFileSync(unusableNameSource, `---
+RESUME_NAME: "123 !!!"
+---
+`);
+  run("resume basename unusable name fails", "./scripts/resume-basename.js", [unusableNameSource], { shouldFail: true });
+  const normalizedNameSource = path.join(tmp, "normalized-name.md");
+  fs.writeFileSync(normalizedNameSource, `---
+RESUME_NAME: "Renée Fixture, Sr."
+---
+`);
+  const normalizedName = run("resume basename normalizes punctuation and accents", "./scripts/resume-basename.js", [normalizedNameSource]);
+  assert("resume basename normalized output", normalizedName.stdout === "renee_fixture_sr_resume");
+
   const editedSource = baseSource.replace("# {{RESUME_NAME}}", "# Edited Name");
   fs.writeFileSync(sourceFile, editedSource);
   make("environment contacts preserve edited source", [
@@ -208,6 +250,11 @@ try {
   ], { env: contactEnv, shouldFail: true });
   assert("make argument phone is rejected", phoneArgBuild.stderr.includes("RESUME_PHONE must be provided through the environment"));
 
+  const missingWebEmail = make("web missing environment email fails", ["web", `PANDOC=${fakePandoc}`], { env: { RESUME_EMAIL: "", RESUME_PHONE: contactEnv.RESUME_PHONE }, shouldFail: true });
+  assert("web missing email error mentions environment", missingWebEmail.stderr.includes("Missing RESUME_EMAIL; provide it through the environment."));
+  const missingWebPhone = make("web missing environment phone fails", ["web", `PANDOC=${fakePandoc}`], { env: { RESUME_EMAIL: contactEnv.RESUME_EMAIL, RESUME_PHONE: "" }, shouldFail: true });
+  assert("web missing phone error mentions environment", missingWebPhone.stderr.includes("Missing RESUME_PHONE; provide it through the environment."));
+
   fs.writeFileSync(sourceFile, baseSource);
   const webPlaceholderBuild = make("web resolves source placeholders before pandoc", ["web", `PANDOC=${fakePandoc}`], { env: contactEnv });
   const webPlaceholderLog = `${webPlaceholderBuild.stdout}${webPlaceholderBuild.stderr}`;
@@ -227,6 +274,51 @@ try {
 
   fs.writeFileSync(sourceFile, baseSource.replace(`  "link": "${projectLink}"`, `  "link": "${projectLink}",\n  "bullets": []`));
   make("resume-entry bullets field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+
+  fs.writeFileSync(sourceFile, baseSource.replace('  "skills": ["JavaScript", "Lua", "Markdown"]', '  "skills": ["JavaScript"],\n  "include": true'));
+  make("skill-entry unsupported field is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+  fs.writeFileSync(sourceFile, baseSource.replace('  "skills": ["JavaScript", "Lua", "Markdown"]', '  "skills": []'));
+  make("skill-entry empty skills are rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+  fs.writeFileSync(sourceFile, baseSource.replace('        "label": "{{RESUME_EMAIL}}",', '        "href": "mailto:{{RESUME_EMAIL}}",'));
+  make("contact-list missing label is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+  fs.writeFileSync(sourceFile, baseSource.replace("```tag-line\nFixture Engineer | Testing, Automation, Documentation\n```", "```tag-line\n   \n```"));
+  make("empty tag-line is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+  fs.writeFileSync(sourceFile, baseSource.replace("## Skills", "```resume-footer\n{\"date\":\"2026-07-08\"}\n```\n\n## Skills"));
+  make("resume-footer missing url is rejected", ["markdown"], { env: contactEnv, shouldFail: true });
+
+  const obfuscationVariantsDir = path.join(tmp, "obfuscation-variants");
+  fs.mkdirSync(obfuscationVariantsDir);
+  const obfuscationVariants = [
+    {
+      name: "head",
+      html: `<html><head></head><body><a href="mailto:{{RESUME_EMAIL}}">{{RESUME_EMAIL}}</a><a href="tel:+1%20(555)%20333-4444">+1 (555) 333-4444</a><a href="tel:{{RESUME_PHONE_HREF}}">{{RESUME_PHONE}}</a></body></html>`,
+      scriptTag: "</head>",
+    },
+    {
+      name: "body",
+      html: `<html><body>{{RESUME_EMAIL}} {{RESUME_PHONE}}</body></html>`,
+      scriptTag: "</body>",
+    },
+    {
+      name: "append",
+      html: `{{RESUME_EMAIL}} {{RESUME_PHONE}}`,
+      scriptTag: null,
+    },
+  ];
+  for (const variant of obfuscationVariants) {
+    const inputHtml = path.join(obfuscationVariantsDir, `${variant.name}.html`);
+    const outputHtml = path.join(obfuscationVariantsDir, `${variant.name}.out.html`);
+    const scriptFile = path.join(obfuscationVariantsDir, `${variant.name}.js`);
+    fs.writeFileSync(inputHtml, variant.html);
+    run(`obfuscator handles ${variant.name} insertion`, "./scripts/obfuscate-html-contacts.js", [sourceFile, inputHtml, scriptFile, "contact.js", outputHtml], { env: contactEnv });
+    const obfuscatedHtml = read(outputHtml);
+    assert(`obfuscator ${variant.name} removes plaintext contacts`, !obfuscatedHtml.includes(contactEnv.RESUME_EMAIL) && !obfuscatedHtml.includes(contactEnv.RESUME_PHONE) && !obfuscatedHtml.includes("mailto:") && !obfuscatedHtml.includes("tel:"), obfuscatedHtml);
+    assert(`obfuscator ${variant.name} writes script tag`, obfuscatedHtml.includes('<script src="contact.js" defer></script>'));
+    if (variant.scriptTag) {
+      assert(`obfuscator ${variant.name} inserts before closing tag`, obfuscatedHtml.indexOf('<script src="contact.js" defer></script>') < obfuscatedHtml.indexOf(variant.scriptTag), obfuscatedHtml);
+    }
+    assert(`obfuscator ${variant.name} writes decrypt script`, read(scriptFile).includes("async function revealContacts()"));
+  }
 
   const optionalMetadataSource = baseSource.replace("## Skills", `\`\`\`resume-entry
 {

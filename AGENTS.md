@@ -21,6 +21,7 @@
 
 - Add tests for new features. Prefer too many regression tests over too few.
 - Add new resume fixtures under `tests/fixtures/` when a focused test case needs source content beyond `tests/fixtures/test-resume.md`.
+- Do not pull names, employers, links, project details, or other resume content from `resume.md` when building tests; use neutral fixture data instead.
 
 ## Structure
 
