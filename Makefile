@@ -1,10 +1,10 @@
 PANDOC ?= pandoc
-SOURCE ?= resume.md
+RESUME_FILE ?= resume.md
 BUILD_DIR ?= build
 WEB_DIR ?= $(BUILD_DIR)/web
 WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
 BASENAME ?= resume
-BUILD_SOURCE ?= $(BUILD_DIR)/$(BASENAME).rendered.md
+RENDERED_RESUME ?= $(BUILD_DIR)/$(BASENAME).rendered.md
 STYLESHEET ?= assets/styles/resume.css
 WEB_STYLESHEET ?= assets/styles/resume-web.css
 PDF_STYLESHEET ?= assets/styles/resume-pdf.css
@@ -21,21 +21,21 @@ $(error RESUME_PHONE must be provided through the environment, not as a make arg
 endif
 
 .PHONY: all web pdf markdown test clean FORCE
-.INTERMEDIATE: $(BUILD_SOURCE)
+.INTERMEDIATE: $(RENDERED_RESUME)
 
 all: web pdf markdown
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_SOURCE): $(SOURCE) scripts/render-resume.js FORCE | $(BUILD_DIR)
-	./scripts/render-resume.js $(SOURCE) $(BUILD_SOURCE)
-	@latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(SOURCE)")"; \
+$(RENDERED_RESUME): $(RESUME_FILE) scripts/render-resume.js FORCE | $(BUILD_DIR)
+	./scripts/render-resume.js $(RESUME_FILE) $(RENDERED_RESUME)
+	@latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(RESUME_FILE)")"; \
 	if [ -z "$$latest_url" ]; then \
-		printf 'Missing RESUME_LATEST_URL in frontmatter of $(SOURCE).\n' >&2; \
+		printf 'Missing RESUME_LATEST_URL in frontmatter of $(RESUME_FILE).\n' >&2; \
 		exit 1; \
 	fi; \
-	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> $(BUILD_SOURCE)
+	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> $(RENDERED_RESUME)
 
 $(WEB_DIR):
 	mkdir -p $(WEB_DIR)
@@ -58,15 +58,15 @@ web: $(WEB_DIR)
 	tmp_source="$$(mktemp "$(BUILD_DIR)/web.source.XXXXXX")"; \
 	tmp_html="$$(mktemp "$(BUILD_DIR)/web.html.XXXXXX")"; \
 	trap 'rm -f "$$tmp_source" "$$tmp_html"' EXIT; \
-	./scripts/render-resume.js --preserve-contact-placeholders $(SOURCE) "$$tmp_source"; \
-	resume_name="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_NAME || "")' "$(SOURCE)")"; \
+	./scripts/render-resume.js --preserve-contact-placeholders $(RESUME_FILE) "$$tmp_source"; \
+	resume_name="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_NAME || "")' "$(RESUME_FILE)")"; \
 	if [ -z "$$resume_name" ]; then \
-		printf 'Missing RESUME_NAME in frontmatter of $(SOURCE).\n' >&2; \
+		printf 'Missing RESUME_NAME in frontmatter of $(RESUME_FILE).\n' >&2; \
 		exit 1; \
 	fi; \
-	latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(SOURCE)")"; \
+	latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(RESUME_FILE)")"; \
 	if [ -z "$$latest_url" ]; then \
-		printf 'Missing RESUME_LATEST_URL in frontmatter of $(SOURCE).\n' >&2; \
+		printf 'Missing RESUME_LATEST_URL in frontmatter of $(RESUME_FILE).\n' >&2; \
 		exit 1; \
 	fi; \
 	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> "$$tmp_source"; \
@@ -80,11 +80,11 @@ web: $(WEB_DIR)
 		--from=markdown \
 		--to=html \
 		--output "$$tmp_html"; \
-	./scripts/obfuscate-html-contacts.js $(SOURCE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
+	./scripts/obfuscate-html-contacts.js $(RESUME_FILE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
 
-pdf: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
-	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(SOURCE)).pdf"; \
-	$(PANDOC) $(BUILD_SOURCE) \
+pdf: $(RENDERED_RESUME) scripts/resume-basename.js $(BUILD_DIR)
+	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).pdf"; \
+	$(PANDOC) $(RENDERED_RESUME) \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--standalone \
 		--metadata pagetitle="Resume" \
@@ -93,9 +93,9 @@ pdf: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
 		--pdf-engine=weasyprint \
 		--output "$$output"
 
-markdown: $(BUILD_SOURCE) scripts/resume-basename.js $(BUILD_DIR)
-	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(SOURCE)).md"; \
-	$(PANDOC) $(BUILD_SOURCE) \
+markdown: $(RENDERED_RESUME) scripts/resume-basename.js $(BUILD_DIR)
+	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).md"; \
+	$(PANDOC) $(RENDERED_RESUME) \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--to=gfm \
 		--wrap=none \

@@ -43,7 +43,7 @@ function run(name, command, args, options = {}) {
 function make(name, args, options = {}) {
   return run(name, "make", [
     ...args,
-    `SOURCE=${sourceFile}`,
+    `RESUME_FILE=${sourceFile}`,
     `BUILD_DIR=${buildDir}`,
   ], options);
 }
@@ -181,6 +181,10 @@ try {
 
   const fakePandoc = path.join(tmp, "pandoc");
   writeFakePandoc(fakePandoc);
+  const makefile = read(path.join(root, "Makefile"));
+  assert("makefile uses RESUME_FILE", makefile.includes("RESUME_FILE ?= resume.md"));
+  const legacyInputVariable = "SOUR" + "CE";
+  assert("makefile omits legacy input variable", !new RegExp(`\\b${legacyInputVariable}\\b`).test(makefile));
 
   const editedSource = baseSource.replace("# Your Name", "# Edited Name");
   fs.writeFileSync(sourceFile, editedSource);
@@ -295,8 +299,8 @@ try {
   assert("markdown output omits HTML comments", !markdown.includes("<!--"));
   assert("markdown resume entries use heading and metadata bullets", markdown.includes("### Software Developer\n\n- **C Spire**\n- *Jul 2018 - Present*\n- *Ridgeland, MS*"));
   assert("markdown resume entries do not use list separator comments", !markdown.includes("- *Location*\n\n<!-- -->\n\n-"));
-  assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n\n- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.`));
-  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle\n- **Web**: HTMX, HTML/CSS, JavaScript"));
+  assert("markdown project resume-entry renders link before markdown bullets", markdown.includes(`### ${projectTitle}\n\n- [${projectLink}](${projectLink})\n- *Apr 2026 - Present*\n- *Zig, Sokol, OpenGL*\n\n- Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.`));
+  assert("markdown skills use one bullet list", markdown.includes("## Skills\n\n- **Languages**: Java, Kotlin, Scala, Python, Zig, SQL, JavaScript, HTML/CSS\n- **Backend**: Spring Boot, Ktor, Akka, Akka HTTP, Hibernate, Apache Camel\n- **Data & Infrastructure**: Kafka, Kafka Connect, Solr, Redis, Docker, Podman, Linux, Git, Maven, Gradle"));
   assert("markdown output includes labeled footer", /^-{3,}$/m.test(markdown) && markdown.includes("**Last updated:**") && markdown.includes("**Latest version:**") && markdown.includes("[resume.acote.dev](https://resume.acote.dev)"));
 
   make("web build succeeds", ["web"], { env: contactEnv });
