@@ -40,11 +40,13 @@ function run(name, command, args, options = {}) {
 }
 
 function make(name, args, options = {}) {
+  const env = { ALLOW_PLAINTEXT_BUILD: "true", ...options.env };
+
   return run(name, "make", [
     ...args,
     `RESUME_FILE=${sourceFile}`,
     `BUILD_DIR=${buildDir}`,
-  ], options);
+  ], { ...options, env });
 }
 
 function assert(name, condition, detail) {
@@ -204,6 +206,8 @@ RESUME_EMAIL: "frontmatter@example.com"
   writeFakePandoc(fakePandoc);
   const makefile = read(path.join(root, "Makefile"));
   assert("makefile uses RESUME_FILE", makefile.includes("RESUME_FILE ?= resume.md"));
+  assert("makefile avoids build directory temp files", !makefile.includes('mktemp "$(BUILD_DIR)/'));
+  assert("makefile guards plaintext CI builds", makefile.includes("ALLOW_PLAINTEXT_BUILD") && makefile.includes("PLAINTEXT_BUILD_TARGETS := all pdf markdown"));
   const legacyInputVariable = "SOUR" + "CE";
   assert("makefile omits legacy input variable", !new RegExp(`\\b${legacyInputVariable}\\b`).test(makefile));
 
@@ -249,6 +253,39 @@ RESUME_NAME: "Renée Fixture, Sr."
     "RESUME_PHONE=+1 555 999 0000",
   ], { env: contactEnv, shouldFail: true });
   assert("make argument phone is rejected", phoneArgBuild.stderr.includes("RESUME_PHONE must be provided through the environment"));
+
+  const plaintextAllowArgBuild = make("plaintext allow make argument is rejected", [
+    "pdf",
+    `PANDOC=${fakePandoc}`,
+    "ALLOW_PLAINTEXT_BUILD=true",
+  ], { env: contactEnv, shouldFail: true });
+  assert("make argument plaintext allowance is rejected", plaintextAllowArgBuild.stderr.includes("ALLOW_PLAINTEXT_BUILD must be provided through the environment"));
+
+  make("clean before ci guard tests succeeds", ["clean"]);
+
+  const ciPdfBuild = make("ci pdf build without plaintext allowance fails", [
+    "pdf",
+    `PANDOC=${fakePandoc}`,
+  ], { env: { ...contactEnv, CI: "true", ALLOW_PLAINTEXT_BUILD: "" }, shouldFail: true });
+  assert("ci pdf guard explains plaintext allowance", ciPdfBuild.stderr.includes("Refusing to run plaintext-producing targets in CI"));
+
+  const ciMarkdownBuild = make("ci markdown build without plaintext allowance fails", [
+    "markdown",
+    `PANDOC=${fakePandoc}`,
+  ], { env: { ...contactEnv, CI: "true", ALLOW_PLAINTEXT_BUILD: "" }, shouldFail: true });
+  assert("ci markdown guard explains plaintext allowance", ciMarkdownBuild.stderr.includes("Set ALLOW_PLAINTEXT_BUILD=true in the environment"));
+
+  const ciAllBuild = make("ci all build without plaintext allowance fails", [
+    `PANDOC=${fakePandoc}`,
+  ], { env: { ...contactEnv, CI: "true", ALLOW_PLAINTEXT_BUILD: "" }, shouldFail: true });
+  assert("ci all guard fails before web output", ciAllBuild.stderr.includes("Refusing to run plaintext-producing targets in CI") && !fs.existsSync(path.join(webDir, "index.html")));
+
+  make("ci web build without plaintext allowance succeeds", [
+    "web",
+    `PANDOC=${fakePandoc}`,
+  ], { env: { ...contactEnv, CI: "true", ALLOW_PLAINTEXT_BUILD: "" } });
+  assert("ci web-only build creates web output", fs.existsSync(path.join(webDir, "index.html")));
+  make("clean after ci guard tests succeeds", ["clean"]);
 
   const missingWebEmail = make("web missing environment email fails", ["web", `PANDOC=${fakePandoc}`], { env: { RESUME_EMAIL: "", RESUME_PHONE: contactEnv.RESUME_PHONE }, shouldFail: true });
   assert("web missing email error mentions environment", missingWebEmail.stderr.includes("Missing RESUME_EMAIL; provide it through the environment."));

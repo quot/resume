@@ -4,11 +4,12 @@ BUILD_DIR ?= build
 WEB_DIR ?= $(BUILD_DIR)/web
 WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
 BASENAME ?= resume
-RENDERED_RESUME ?= $(BUILD_DIR)/$(BASENAME).rendered.md
 STYLESHEET ?= assets/styles/resume.css
 WEB_STYLESHEET ?= assets/styles/resume-web.css
 PDF_STYLESHEET ?= assets/styles/resume-pdf.css
 RESUME_ENTRY_FILTER ?= pandoc/filters/resume-entry.lua
+PLAINTEXT_BUILD_TARGETS := all pdf markdown
+REQUESTED_TARGETS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 
 # Contact values intentionally come from build-time secrets so the public repo
 # can contain the resume source without publishing email or phone values.
@@ -20,22 +21,24 @@ ifeq ($(origin RESUME_PHONE),command line)
 $(error RESUME_PHONE must be provided through the environment, not as a make argument)
 endif
 
+ifeq ($(origin ALLOW_PLAINTEXT_BUILD),command line)
+$(error ALLOW_PLAINTEXT_BUILD must be provided through the environment, not as a make argument)
+endif
+
+ifeq ($(CI),true)
+ifneq ($(ALLOW_PLAINTEXT_BUILD),true)
+ifneq ($(filter $(PLAINTEXT_BUILD_TARGETS),$(REQUESTED_TARGETS)),)
+$(error Refusing to run plaintext-producing targets in CI. Set ALLOW_PLAINTEXT_BUILD=true in the environment to allow pdf or markdown builds)
+endif
+endif
+endif
+
 .PHONY: all web pdf markdown test clean FORCE
-.INTERMEDIATE: $(RENDERED_RESUME)
 
 all: web pdf markdown
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
-
-$(RENDERED_RESUME): $(RESUME_FILE) scripts/render-resume.js FORCE | $(BUILD_DIR)
-	./scripts/render-resume.js $(RESUME_FILE) $(RENDERED_RESUME)
-	@latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(RESUME_FILE)")"; \
-	if [ -z "$$latest_url" ]; then \
-		printf 'Missing RESUME_LATEST_URL in frontmatter of $(RESUME_FILE).\n' >&2; \
-		exit 1; \
-	fi; \
-	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> $(RENDERED_RESUME)
 
 $(WEB_DIR):
 	mkdir -p $(WEB_DIR)
@@ -55,9 +58,10 @@ web: $(WEB_DIR)
 		printf 'Missing RESUME_PHONE; provide it through the environment.\n' >&2; \
 		exit 1; \
 	fi; \
-	tmp_source="$$(mktemp "$(BUILD_DIR)/web.source.XXXXXX")"; \
-	tmp_html="$$(mktemp "$(BUILD_DIR)/web.html.XXXXXX")"; \
-	trap 'rm -f "$$tmp_source" "$$tmp_html"' EXIT; \
+	tmp_dir="$$(mktemp -d "$${RUNNER_TEMP:-$${TMPDIR:-/tmp}}/resume-build.XXXXXX")"; \
+	trap 'rm -rf "$$tmp_dir"' EXIT; \
+	tmp_source="$$tmp_dir/web.source.md"; \
+	tmp_html="$$tmp_dir/web.html"; \
 	./scripts/render-resume.js --preserve-contact-placeholders $(RESUME_FILE) "$$tmp_source"; \
 	resume_name="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_NAME || "")' "$(RESUME_FILE)")"; \
 	if [ -z "$$resume_name" ]; then \
@@ -82,9 +86,20 @@ web: $(WEB_DIR)
 		--output "$$tmp_html"; \
 	./scripts/obfuscate-html-contacts.js $(RESUME_FILE) "$$tmp_html" $(WEB_ASSETS_DIR)/contact.js assets/contact.js $(WEB_DIR)/index.html
 
-pdf: $(RENDERED_RESUME) scripts/resume-basename.js $(BUILD_DIR)
-	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).pdf"; \
-	$(PANDOC) $(RENDERED_RESUME) \
+pdf: $(RESUME_FILE) scripts/render-resume.js scripts/resume-basename.js FORCE | $(BUILD_DIR)
+	@set -e; \
+	tmp_dir="$$(mktemp -d "$${RUNNER_TEMP:-$${TMPDIR:-/tmp}}/resume-build.XXXXXX")"; \
+	trap 'rm -rf "$$tmp_dir"' EXIT; \
+	rendered_resume="$$tmp_dir/resume.rendered.md"; \
+	./scripts/render-resume.js $(RESUME_FILE) "$$rendered_resume"; \
+	latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(RESUME_FILE)")"; \
+	if [ -z "$$latest_url" ]; then \
+		printf 'Missing RESUME_LATEST_URL in frontmatter of $(RESUME_FILE).\n' >&2; \
+		exit 1; \
+	fi; \
+	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> "$$rendered_resume"; \
+	output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).pdf"; \
+	$(PANDOC) "$$rendered_resume" \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--standalone \
 		--metadata pagetitle="Resume" \
@@ -93,9 +108,20 @@ pdf: $(RENDERED_RESUME) scripts/resume-basename.js $(BUILD_DIR)
 		--pdf-engine=weasyprint \
 		--output "$$output"
 
-markdown: $(RENDERED_RESUME) scripts/resume-basename.js $(BUILD_DIR)
-	@output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).md"; \
-	$(PANDOC) $(RENDERED_RESUME) \
+markdown: $(RESUME_FILE) scripts/render-resume.js scripts/resume-basename.js FORCE | $(BUILD_DIR)
+	@set -e; \
+	tmp_dir="$$(mktemp -d "$${RUNNER_TEMP:-$${TMPDIR:-/tmp}}/resume-build.XXXXXX")"; \
+	trap 'rm -rf "$$tmp_dir"' EXIT; \
+	rendered_resume="$$tmp_dir/resume.rendered.md"; \
+	./scripts/render-resume.js $(RESUME_FILE) "$$rendered_resume"; \
+	latest_url="$$(node -e 'const { readVars } = require("./scripts/read-vars"); process.stdout.write(readVars(process.argv[1]).RESUME_LATEST_URL || "")' "$(RESUME_FILE)")"; \
+	if [ -z "$$latest_url" ]; then \
+		printf 'Missing RESUME_LATEST_URL in frontmatter of $(RESUME_FILE).\n' >&2; \
+		exit 1; \
+	fi; \
+	printf '\n```resume-footer\n{"date":"%s","url":"%s"}\n```\n' "$$(date +%Y-%m-%d)" "$$latest_url" >> "$$rendered_resume"; \
+	output="$(BUILD_DIR)/$$(./scripts/resume-basename.js $(RESUME_FILE)).md"; \
+	$(PANDOC) "$$rendered_resume" \
 		--lua-filter $(RESUME_ENTRY_FILTER) \
 		--to=gfm \
 		--wrap=none \
