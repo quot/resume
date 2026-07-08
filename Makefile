@@ -6,6 +6,7 @@ WEB_ASSETS_DIR ?= $(WEB_DIR)/assets
 BASENAME ?= resume
 BUILD_SOURCE ?= $(BUILD_DIR)/$(BASENAME).rendered.md
 STYLESHEET ?= assets/styles/resume.css
+WEB_STYLESHEET ?= assets/styles/resume-web.css
 PDF_STYLESHEET ?= assets/styles/resume-pdf.css
 RESUME_ENTRY_FILTER ?= pandoc/filters/resume-entry.lua
 
@@ -42,6 +43,7 @@ $(WEB_DIR):
 web: $(WEB_DIR)
 	mkdir -p $(WEB_ASSETS_DIR)/styles $(WEB_ASSETS_DIR)/fonts/Lato
 	cp $(STYLESHEET) $(WEB_ASSETS_DIR)/styles/resume.css
+	cp $(WEB_STYLESHEET) $(WEB_ASSETS_DIR)/styles/resume-web.css
 	cp web/headers.txt $(WEB_DIR)/_headers
 	cp assets/fonts/Lato/*.ttf $(WEB_ASSETS_DIR)/fonts/Lato/
 	@set -e; \
@@ -74,6 +76,7 @@ web: $(WEB_DIR)
 		--metadata pagetitle="$$resume_name Resume" \
 		--include-in-header web/head.html \
 		--css assets/styles/resume.css \
+		--css assets/styles/resume-web.css \
 		--from=markdown \
 		--to=html \
 		--output "$$tmp_html"; \

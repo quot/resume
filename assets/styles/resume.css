@@ -41,13 +41,6 @@ body {
   padding: 0.5in 0.65in;
 }
 
-@media screen and (max-width: 600px) {
-  body {
-    padding-right: 0.5rem;
-    padding-left: 0.5rem;
-  }
-}
-
 h1,
 h2,
 h3 {

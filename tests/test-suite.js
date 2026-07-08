@@ -304,10 +304,12 @@ try {
   assert("web headers exists", fs.existsSync(path.join(webDir, "_headers")));
   assert("web contact script exists", fs.existsSync(path.join(webDir, "assets", "contact.js")));
   assert("web stylesheet exists", fs.existsSync(path.join(webDir, "assets", "styles", "resume.css")));
+  assert("web responsive stylesheet exists", fs.existsSync(path.join(webDir, "assets", "styles", "resume-web.css")));
   assert("web index disables caching", read(path.join(webDir, "index.html")).includes('http-equiv="Cache-Control"'));
   assert("web title uses frontmatter name", read(path.join(webDir, "index.html")).includes("<title>Alex Coté Resume</title>"));
   assert("web headers disable caching", read(path.join(webDir, "_headers")).includes("Cache-Control: no-store"));
   assert("web index references contact script", read(path.join(webDir, "index.html")).includes('src="assets/contact.js"'));
+  assert("web index references responsive stylesheet", read(path.join(webDir, "index.html")).includes('href="assets/styles/resume-web.css"'));
   assert("web index has encrypted contact attributes", /data-obfuscated-contact/.test(read(path.join(webDir, "index.html"))));
   assert("resume entry company and location are italicized", read(path.join(webDir, "index.html")).includes("<em>C Spire</em>") && read(path.join(webDir, "index.html")).includes("<em>Ridgeland, MS</em>"));
   assert("web tag line is centered", read(path.join(webDir, "index.html")).includes('class="tag-line"') && read(path.join(webDir, "assets", "styles", "resume.css")).includes(".tag-line") && read(path.join(webDir, "assets", "styles", "resume.css")).includes("text-align: center"));
@@ -346,6 +348,7 @@ try {
   assert("full build web index exists", fs.existsSync(path.join(webDir, "index.html")));
   assert("full build web headers exists", fs.existsSync(path.join(webDir, "_headers")));
   assert("full build web stylesheet exists", fs.existsSync(path.join(webDir, "assets", "styles", "resume.css")));
+  assert("full build web responsive stylesheet exists", fs.existsSync(path.join(webDir, "assets", "styles", "resume-web.css")));
   assert("full build contact script exists", fs.existsSync(path.join(webDir, "assets", "contact.js")));
 
   make("clean succeeds", ["clean"]);
