@@ -59,7 +59,7 @@ yadda yadda yadda
 
 - Develop and maintain 200+ JVM-based middleware microservices across Java, Scala, and Kotlin, integrating with systems such as Solr, Kafka, Redis, and internal business platforms.
 - Designed and built an event-driven Solr-backed customer search platform using Kafka change-event pipelines to provide low-latency customer lookup for POS systems and backend services.
-  - Developed a parallel Akka Streams reindexing service that processes 10M+ customer records from multiple databases in under 2 hours.
+  - Developed a parallel Akka Streams reindexing service that processes 100M+ customer records from multiple databases in under 2 hours.
 - Implemented eSIM activation integrations with Microsoft and Idemia, enabling customers to activate wireless service directly from Windows tablets.
 - Led team-wide adoption of Kotlin, Ktor, and Gradle for new microservices, replacing Scala, Akka HTTP, and Maven as the team’s default backend stack.
 - Created an internal Markdown/Git-based developer documentation platform used by ~50 developers and later adopted for a company-wide developer AI knowledge base.
