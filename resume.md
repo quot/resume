@@ -50,20 +50,27 @@ yadda yadda yadda
 
 ```resume-entry
 {
-  "title": "Software Developer",
-  "company": "C Spire",
+  "title": "Software Developer II",
+  "company": "Previously: Software Developer I, Jul 2018–Jul 2020",
   "location": "Ridgeland, MS",
-  "dates": "Jul 2018 - Present"
+  "dates": "Jul 2020–Present"
 }
 ```
 
-- Develop and maintain 200+ JVM-based middleware microservices across Java, Scala, and Kotlin, integrating with systems such as Solr, Kafka, Redis, and internal business platforms.
-- Designed and built an event-driven Solr-backed customer search platform using Kafka change-event pipelines to provide low-latency customer lookup for POS systems and backend services.
-  - Developed a parallel Akka Streams reindexing service that processes 100M+ customer records from multiple databases in under 2 hours.
-- Implemented eSIM activation integrations with Microsoft and Idemia, enabling customers to activate wireless service directly from Windows tablets.
-- Led team-wide adoption of Kotlin, Ktor, and Gradle for new microservices, replacing Scala, Akka HTTP, and Maven as the team’s default backend stack.
-- Created an internal Markdown/Git-based developer documentation platform used by ~50 developers and later adopted for a company-wide developer AI knowledge base.
-- Founded the C Spire OSS employee working group, partnering with Security, Legal, and Executive teams to fund open source software and define company-wide OSS policies.
+<!-- ***Previously:** Software Developer I, Jul 2018–Jul 2020* -->
+*C Spire*
+
+- Develop, maintain, and support 200+ JVM-based middleware services across Java, Scala, and Kotlin, integrating with Kafka, Solr, Redis, Oracle databases, vendor APIs, and internal business systems.
+- Lead technical design and coordinate implementation across projects involving up to four other developers; mentor new employees and interns through onboarding, architecture training, and hands-on project work.
+- Led a four-person effort to replace an hourly Solr 4.x customer-indexing process with an event-driven Kafka, Kafka Connect, and Solr 8 platform, reducing search-data latency from up to one hour to near real time across web, POS, and backend systems.
+  - Built an Akka-based reindexing service that streams and combines 100M+ source records across multiple Oracle databases, reducing a complete rebuild from more than two days to approximately 90 minutes.
+- Built the team’s first production service using Kotlin, Ktor, and Gradle and established an implementation pattern supporting an ongoing migration away from Scala, Akka HTTP, and Maven.
+- Helped design and build a UI-configurable wireless promotion engine using Java, Scala, Spring, Oracle, and Drools, replacing manually coded rules with a durable decision-tree model later reused for Home-service promotions and still operating without fundamental redesign six years after launch.
+- Independently built a searchable Git and Markdown based developer knowledge platform used by approximately 50 developers and later selected as the foundation for a company-wide developer AI knowledge base.
+- Founded C Spire’s open-source working group, secured CIO sponsorship and funding, and partnered with Legal and Cyber Security to establish the company’s first license and contribution processes; multiple employee patches have since been accepted upstream.
+- Participate in rotating production on-call coverage and serve as an escalation point for complex incidents across customer search, ordering, billing, and integration systems.
+- Implemented OAuth-secured Akka HTTP APIs connecting Microsoft and Idemia’s eSIM activation flow with internal account, device-registration, service-plan, and billing systems.
+
 
 <!--
 ```resume-entry
@@ -110,11 +117,11 @@ yadda yadda yadda
 }
 ```
 
-- Sublime Text plugin that ports Helix-style modal editing into Sublime, including normal, insert, select, and view modes with mode-aware keybindings.
-- Built core editing behavior such as movement commands, selection manipulation, registers, yank/delete/change operations, paste behavior, and plugin state management.
+- Sublime Text plugin implementing Helix-inspired modal editing with normal, insert, select, and view modes and mode-aware keybindings.
+- Built movement and selection commands, registers, yank/delete/change operations, paste behavior, plugin-state management, and reusable abstractions over Sublime Text APIs.
 
 
-```resume-entry
+<!-- ```resume-entry
 {
   "title": "Zig 3D Mesh Generator",
   "dates": "Apr 2026 - Present",
@@ -124,10 +131,10 @@ yadda yadda yadda
 ```
 
 - Building an experimental 3D mesh generation tool in Zig using Sokol and OpenGL.
-- Generates mesh geometry from n-gon faces with automatic normal calculation while exploring low-poly modeling workflows and custom mesh data structures.
+- Generates mesh geometry from n-gon faces with automatic normal calculation while exploring low-poly modeling workflows and custom mesh data structures. -->
 
 
-```resume-entry
+<!-- ```resume-entry
 {
   "title": "Backend Lead",
   "company": "MSU Software Engineering Senior Design Course",
@@ -137,14 +144,14 @@ yadda yadda yadda
 ```
 
 - Led a four-person backend team (alongside a four-person frontend team) that designed and developed the backend for a Senior Design course project.
-- The project was a full-stack system for the MSU School of Veterinary Medicine to collect and analyze animal medical data across all MSU farms.
+- The project was a full-stack system for the MSU School of Veterinary Medicine to collect and analyze animal medical data across all MSU farms. -->
 
 ## Skills
 
 ```skill-entry
 {
   "category": "Languages",
-  "skills": ["Java", "Kotlin", "Scala", "Python", "Zig", "SQL", "JavaScript", "HTML/CSS"]
+  "skills": ["Java", "Kotlin", "Scala", "Python", "SQL", "JavaScript", "Zig"]
 }
 ```
 
@@ -158,7 +165,7 @@ yadda yadda yadda
 ```skill-entry
 {
   "category": "Data & Infrastructure",
-  "skills": ["Kafka", "Kafka Connect", "Solr", "Redis", "Docker", "Podman", "Linux", "Git", "Maven", "Gradle"]
+  "skills": ["Kafka", "Kafka Connect", "Solr", "Redis", "Oracle Database", "Docker", "Linux", "Git", "Maven", "Gradle"]
 }
 ```
 
@@ -191,7 +198,7 @@ yadda yadda yadda
 ```
 
 <!-- - Member of MSU's ACM and ACM-W clubs. -->
-- Worked as a CS department system administrator managing staff PCs and Linux servers.
+- Managed department workstations and Linux servers as a computer science department system administrator.
 
 <!-- ```resume-entry
 {
